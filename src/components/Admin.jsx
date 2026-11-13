@@ -17,6 +17,9 @@ export default function Admin() {
   const [hours, setHours] = useState("2")
   const [formError, setFormError] = useState("")
   const [saved, setSaved] = useState(null)
+  const [testTo, setTestTo] = useState("")
+  const [testNote, setTestNote] = useState("")
+  const [testError, setTestError] = useState("")
 
   function unlock(event) {
     event.preventDefault()
@@ -41,6 +44,30 @@ export default function Admin() {
     const next = setDrawDuration({ days: dayCount, hours: hourCount })
     setFormError("")
     setSaved(formatDrawWhen(next))
+  }
+
+  async function sendTest(event) {
+    event.preventDefault()
+    setTestError("")
+    setTestNote("")
+    try {
+      const response = await fetch("/api/admin/test-mail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Pass": pass,
+        },
+        body: JSON.stringify({ to: testTo.trim() }),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setTestError(body.error || "The letter could not be sent.")
+        return
+      }
+      setTestNote(`Test letter sent to ${testTo.trim()}.`)
+    } catch {
+      setTestError("The letter could not be sent.")
+    }
   }
 
   return (
@@ -91,6 +118,26 @@ export default function Admin() {
             ) : null}
             <button className="btn" type="submit">
               Set duration
+            </button>
+          </form>
+        ) : null}
+        {unlocked ? (
+          <form className="admin-panel" onSubmit={sendTest} noValidate>
+            <p className="kicker">Desk letter</p>
+            <div className="field">
+              <label htmlFor="test-mail">Send a test letter</label>
+              <input
+                id="test-mail"
+                type="email"
+                autoComplete="email"
+                value={testTo}
+                onChange={(event) => setTestTo(event.target.value)}
+              />
+            </div>
+            {testError ? <p className="error">{testError}</p> : null}
+            {testNote ? <p className="lede">{testNote}</p> : null}
+            <button className="btn" type="submit">
+              Send with Brevo
             </button>
           </form>
         ) : (

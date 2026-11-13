@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 
-const file = path.resolve("data/entries.json")
+const file = path.join(process.env.DATA_DIR || path.resolve("data"), "entries.json")
 
 function read() {
   try {

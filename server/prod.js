@@ -3,6 +3,7 @@ import http from "node:http"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { handle } from "./entries-api.js"
+import { handleTestMail } from "./mail.js"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dist")
 const port = Number(process.env.PORT) || 10000
@@ -19,9 +20,10 @@ const types = {
   ".webp": "image/webp",
 }
 
-function sendFile(res, file) {
+function sendFile(res, file, cache) {
   res.statusCode = 200
   res.setHeader("Content-Type", types[path.extname(file)] || "application/octet-stream")
+  res.setHeader("Cache-Control", cache)
   fs.createReadStream(file).pipe(res)
 }
 
@@ -35,10 +37,11 @@ function serveSite(req, res) {
   }
   const file = path.join(root, pathname)
   if (file.startsWith(root) && fs.existsSync(file) && fs.statSync(file).isFile()) {
-    sendFile(res, file)
+    const hashed = pathname.startsWith("/assets/")
+    sendFile(res, file, hashed ? "public, max-age=31536000, immutable" : "public, max-age=86400")
     return
   }
-  sendFile(res, path.join(root, "index.html"))
+  sendFile(res, path.join(root, "index.html"), "no-cache")
 }
 
 const server = http.createServer((req, res) => {
@@ -47,6 +50,16 @@ const server = http.createServer((req, res) => {
     res.statusCode = 200
     res.setHeader("Content-Type", "text/plain; charset=utf-8")
     res.end("ok")
+    return
+  }
+  if (url === "/api/admin/test-mail" || url.startsWith("/api/admin/test-mail?")) {
+    handleTestMail(req, res).catch(() => {
+      if (!res.headersSent) {
+        res.statusCode = 500
+        res.setHeader("Content-Type", "application/json")
+        res.end(JSON.stringify({ error: "The letter could not be sent." }))
+      }
+    })
     return
   }
   if (url === "/api/entries" || url.startsWith("/api/entries/") || url.startsWith("/api/entries?")) {

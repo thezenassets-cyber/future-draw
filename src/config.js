@@ -4,6 +4,6 @@ export const site = {
   drawDate: "2026-12-20T18:00:00",
   drawLabel: "20 December 2026",
   drawTime: "6:00 p.m",
-  contactEmail: "hello@futuredraw.com",
+  contactEmail: "hello@futuredraw.live",
   adminPass: "meridian",
 }

@@ -2,14 +2,28 @@ services:
   - type: web
     name: future-draw
     runtime: node
-    plan: free
+    plan: starter
     region: oregon
     branch: main
     buildCommand: npm ci && npm run build
     startCommand: node server/prod.js
     healthCheckPath: /health
     domains:
-      - futuredraw.site
+      - futuredraw.live
+    disk:
+      name: entries
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: DATA_DIR
+        value: /var/data
+      - key: ADMIN_PASS
+        sync: false
+      - key: BREVO_SMTP_LOGIN
+        sync: false
+      - key: BREVO_SMTP_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
