@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: future-draw
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: node server/prod.js
+    healthCheckPath: /health
+    domains:
+      - futuredraw.site
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
