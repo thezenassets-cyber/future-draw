@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { notifyAdmin } from "./mail.js"
+import { notifyAdmin, notifyClaimant } from "./mail.js"
 import { storeFile } from "./store.js"
 
 function file() {
@@ -141,6 +141,7 @@ export async function handle(req, res) {
       return send(res, 500, { error: "Could not save the entry." })
     }
     if (saved.created) {
+      await notifyClaimant(saved.record)
       const notice = await notifyAdmin(saved.record)
       saved.record.adminNotice = notice
       try {

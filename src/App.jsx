@@ -3,7 +3,6 @@ import Admin from "./components/Admin.jsx"
 import ClaimDrawer from "./components/ClaimDrawer.jsx"
 import Footer from "./components/Footer.jsx"
 import Header from "./components/Header.jsx"
-import InstallApp from "./components/InstallApp.jsx"
 import Hero from "./components/Hero.jsx"
 import InviteBanner from "./components/InviteBanner.jsx"
 import PrizeIndex from "./components/PrizeIndex.jsx"
@@ -106,7 +105,6 @@ function Site() {
   return (
     <>
       <Header onClaim={() => startClaim(prizes[0])} />
-      <InstallApp />
       <InviteBanner inviter={inviter} />
       <main>
         <Hero prize={prizes[0]} onClaim={startClaim} />
