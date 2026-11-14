@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Future Draw",
+  "short_name": "Future Draw",
+  "description": "A customer promotion. Enter for a Roadster, Cybertruck, Model S, Model X, Model Y, or Optimus Gen 3. Not affiliated with Tesla, Inc.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

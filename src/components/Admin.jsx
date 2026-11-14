@@ -1,9 +1,16 @@
 import { useState } from "react"
+import ClaimsDesk from "./ClaimsDesk.jsx"
+import InstallApp from "./InstallApp.jsx"
 import { site } from "../config.js"
-import { formatDrawWhen, setDrawDuration, useCountdown, useDrawEnd } from "../draw.js"
+import { formatDrawWhen, getDrawEnd, setDrawDuration, setDrawEnd, useCountdown, useDrawEnd } from "../draw.js"
 
 function pad(value) {
   return String(value).padStart(2, "0")
+}
+
+function localInput(end) {
+  const date = new Date(end)
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 export default function Admin() {
@@ -15,8 +22,12 @@ export default function Admin() {
   const [passError, setPassError] = useState("")
   const [days, setDays] = useState("1")
   const [hours, setHours] = useState("2")
+  const [minutes, setMinutes] = useState("0")
   const [formError, setFormError] = useState("")
   const [saved, setSaved] = useState(null)
+  const [exact, setExact] = useState(() => localInput(getDrawEnd()))
+  const [exactError, setExactError] = useState("")
+  const [exactSaved, setExactSaved] = useState(null)
   const [testTo, setTestTo] = useState("")
   const [testNote, setTestNote] = useState("")
   const [testError, setTestError] = useState("")
@@ -35,15 +46,34 @@ export default function Admin() {
     event.preventDefault()
     const dayCount = Number(days)
     const hourCount = Number(hours)
-    const whole = Number.isInteger(dayCount) && Number.isInteger(hourCount)
-    if (!whole || dayCount < 0 || hourCount < 0 || (dayCount === 0 && hourCount === 0)) {
-      setFormError("Enter a duration of at least one hour.")
+    const minuteCount = Number(minutes)
+    const counts = [dayCount, hourCount, minuteCount]
+    const whole = counts.every((count) => Number.isInteger(count) && count >= 0)
+    if (!whole || dayCount + hourCount + minuteCount === 0) {
+      setFormError("Enter a duration of at least one minute.")
       setSaved(null)
       return
     }
-    const next = setDrawDuration({ days: dayCount, hours: hourCount })
+    const next = setDrawDuration({ days: dayCount, hours: hourCount, minutes: minuteCount })
+    setExact(localInput(next))
     setFormError("")
+    setExactError("")
+    setExactSaved(null)
     setSaved(formatDrawWhen(next))
+  }
+
+  function saveExact(event) {
+    event.preventDefault()
+    const next = new Date(exact).getTime()
+    if (!Number.isFinite(next)) {
+      setExactError("Enter a date and a time.")
+      setExactSaved(null)
+      return
+    }
+    setDrawEnd(next)
+    setExactError("")
+    setSaved(null)
+    setExactSaved(formatDrawWhen(next))
   }
 
   async function sendTest(event) {
@@ -72,6 +102,7 @@ export default function Admin() {
 
   return (
     <main className="admin">
+      <InstallApp desk />
       <div className="wrap">
         <p className="kicker">Admin</p>
         <h1 className="admin-title">Draw countdown</h1>
@@ -93,24 +124,37 @@ export default function Admin() {
         </div>
 
         {unlocked ? (
+          <>
           <form className="admin-panel" onSubmit={save} noValidate>
-            <div className="field">
-              <label htmlFor="draw-days">Days</label>
-              <input
-                id="draw-days"
-                inputMode="numeric"
-                value={days}
-                onChange={(event) => setDays(event.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="draw-hours">Hours</label>
-              <input
-                id="draw-hours"
-                inputMode="numeric"
-                value={hours}
-                onChange={(event) => setHours(event.target.value)}
-              />
+            <p className="kicker">Duration</p>
+            <div className="admin-time">
+              <div className="field">
+                <label htmlFor="draw-days">Days</label>
+                <input
+                  id="draw-days"
+                  inputMode="numeric"
+                  value={days}
+                  onChange={(event) => setDays(event.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="draw-hours">Hours</label>
+                <input
+                  id="draw-hours"
+                  inputMode="numeric"
+                  value={hours}
+                  onChange={(event) => setHours(event.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="draw-minutes">Minutes</label>
+                <input
+                  id="draw-minutes"
+                  inputMode="numeric"
+                  value={minutes}
+                  onChange={(event) => setMinutes(event.target.value)}
+                />
+              </div>
             </div>
             {formError ? <p className="error">{formError}</p> : null}
             {saved ? (
@@ -120,7 +164,28 @@ export default function Admin() {
               Set duration
             </button>
           </form>
+          <form className="admin-panel" onSubmit={saveExact} noValidate>
+            <p className="kicker">Exact end</p>
+            <div className="field">
+              <label htmlFor="draw-exact">Date and time</label>
+              <input
+                id="draw-exact"
+                type="datetime-local"
+                value={exact}
+                onChange={(event) => setExact(event.target.value)}
+              />
+            </div>
+            {exactError ? <p className="error">{exactError}</p> : null}
+            {exactSaved ? (
+              <p className="lede">Countdown set to {exactSaved.date} at {exactSaved.time}.</p>
+            ) : null}
+            <button className="btn" type="submit">
+              Set this time
+            </button>
+          </form>
+          </>
         ) : null}
+        {unlocked ? <ClaimsDesk pass={pass} /> : null}
         {unlocked ? (
           <form className="admin-panel" onSubmit={sendTest} noValidate>
             <p className="kicker">Desk letter</p>

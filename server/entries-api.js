@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import { notifyAdmin } from "./mail.js"
 
 const file = path.join(process.env.DATA_DIR || path.resolve("data"), "entries.json")
 
@@ -15,6 +16,40 @@ function read() {
 function write(entries) {
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, JSON.stringify(entries, null, 2))
+}
+
+let chain = Promise.resolve()
+
+export function listEntries() {
+  return read()
+}
+
+export function updateEntries(mutator) {
+  const run = chain.then(async () => {
+    const entries = read()
+    const result = await mutator(entries)
+    write(entries)
+    return result
+  })
+  chain = run.then(() => {}, () => {})
+  return run
+}
+
+export function publicEntry(record) {
+  return {
+    id: record.id,
+    prizeId: record.prizeId,
+    prizeName: record.prizeName,
+    cash: record.cash,
+    name: record.name,
+    email: record.email,
+    phone: record.phone,
+    country: record.country,
+    createdAt: record.createdAt,
+    referredBy: record.referredBy,
+    bonusEntries: Number(record.bonusEntries) || 0,
+    deskNotified: record.adminNotice === "sent",
+  }
 }
 
 function send(res, status, body) {
@@ -57,6 +92,10 @@ function clean(body) {
     createdAt: new Date().toISOString(),
     referredBy: null,
     bonusEntries: 0,
+    status: "received",
+    deliveryUrl: "",
+    letterSentAt: "",
+    adminNotice: "unconfigured",
   }
 }
 
@@ -67,7 +106,7 @@ export async function handle(req, res) {
   if (req.method === "GET" && id) {
     const found = read().find((item) => item.id === id)
     if (!found) return send(res, 404, { error: "Not found" })
-    return send(res, 200, found)
+    return send(res, 200, publicEntry(found))
   }
 
   if (req.method === "POST" && !id) {
@@ -79,21 +118,38 @@ export async function handle(req, res) {
     }
     const record = clean(body)
     if (!record) return send(res, 400, { error: "Invalid entry." })
-    const entries = read()
-    const existing = entries.find((item) => item.email === record.email)
-    if (existing) return send(res, 200, existing)
-
-    const ref = String(body.referredBy || "").trim()
-    if (ref && ref !== record.id) {
-      const inviter = entries.find((item) => item.id === ref)
-      if (inviter && inviter.email !== record.email) {
-        record.referredBy = ref
-        inviter.bonusEntries = (Number(inviter.bonusEntries) || 0) + 1
+    let saved
+    try {
+      saved = await updateEntries((entries) => {
+        const existing = entries.find((item) => item.email === record.email)
+        if (existing) return { created: false, record: existing }
+        const ref = String(body.referredBy || "").trim()
+        if (ref && ref !== record.id) {
+          const inviter = entries.find((item) => item.id === ref)
+          if (inviter && inviter.email !== record.email) {
+            record.referredBy = ref
+            inviter.bonusEntries = (Number(inviter.bonusEntries) || 0) + 1
+          }
+        }
+        entries.push(record)
+        return { created: true, record }
+      })
+    } catch {
+      return send(res, 500, { error: "Could not save the entry." })
+    }
+    if (saved.created) {
+      const notice = await notifyAdmin(saved.record)
+      saved.record.adminNotice = notice
+      try {
+        await updateEntries((entries) => {
+          const item = entries.find((entry) => entry.id === saved.record.id)
+          if (item) item.adminNotice = notice
+        })
+      } catch {
+        saved.record.adminNotice = "failed"
       }
     }
-    entries.push(record)
-    write(entries)
-    return send(res, 201, record)
+    return send(res, saved.created ? 201 : 200, publicEntry(saved.record))
   }
 
   return send(res, 404, { error: "Not found" })

@@ -13,11 +13,14 @@ export function getDrawEnd() {
   return new Date(site.drawDate).getTime()
 }
 
-export function setDrawDuration({ days, hours }) {
-  const end = Date.now() + days * 86400000 + hours * 3600000
+export function setDrawEnd(end) {
   localStorage.setItem(KEY, String(end))
   window.dispatchEvent(new Event(CHANGE))
   return end
+}
+
+export function setDrawDuration({ days, hours, minutes = 0 }) {
+  return setDrawEnd(Date.now() + days * 86400000 + hours * 3600000 + minutes * 60000)
 }
 
 export function formatDrawWhen(end = getDrawEnd()) {

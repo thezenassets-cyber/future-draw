@@ -282,7 +282,10 @@ function Identification({ entry, onClose }) {
       <p>
         This code is your identification for the {entry.prizeName} and{" "}
         {formatCash(entry.cash)}. You have {chanceLabel}. One finished invite adds one
-        chance. It is not a winning notice. The draw is on {formatDrawWhen().date}.
+        chance. It is not a winning notice. The draw is on {formatDrawWhen().date}.{" "}
+        {entry.deskNotified
+          ? "The desk has been notified of this registration."
+          : "This registration is stored with the desk under your code."}
       </p>
       <div className="invite">
         <p className="kicker">Give someone a chance</p>

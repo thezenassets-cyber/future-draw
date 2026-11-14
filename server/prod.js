@@ -2,8 +2,8 @@ import fs from "node:fs"
 import http from "node:http"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { handleAdmin } from "./desk.js"
 import { handle } from "./entries-api.js"
-import { handleTestMail } from "./mail.js"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dist")
 const port = Number(process.env.PORT) || 10000
@@ -17,6 +17,7 @@ const types = {
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".webmanifest": "application/manifest+json",
   ".webp": "image/webp",
 }
 
@@ -38,7 +39,9 @@ function serveSite(req, res) {
   const file = path.join(root, pathname)
   if (file.startsWith(root) && fs.existsSync(file) && fs.statSync(file).isFile()) {
     const hashed = pathname.startsWith("/assets/")
-    sendFile(res, file, hashed ? "public, max-age=31536000, immutable" : "public, max-age=86400")
+    const fresh = pathname === "/sw.js" || pathname.endsWith(".webmanifest")
+    const cache = fresh ? "no-cache" : hashed ? "public, max-age=31536000, immutable" : "public, max-age=86400"
+    sendFile(res, file, cache)
     return
   }
   sendFile(res, path.join(root, "index.html"), "no-cache")
@@ -52,12 +55,13 @@ const server = http.createServer((req, res) => {
     res.end("ok")
     return
   }
-  if (url === "/api/admin/test-mail" || url.startsWith("/api/admin/test-mail?")) {
-    handleTestMail(req, res).catch(() => {
+  if (url === "/api/admin" || url.startsWith("/api/admin/") || url.startsWith("/api/admin?")) {
+    req.url = url.slice("/api/admin".length) || "/"
+    handleAdmin(req, res).catch(() => {
       if (!res.headersSent) {
         res.statusCode = 500
         res.setHeader("Content-Type", "application/json")
-        res.end(JSON.stringify({ error: "The letter could not be sent." }))
+        res.end(JSON.stringify({ error: "The desk could not complete that step." }))
       }
     })
     return
