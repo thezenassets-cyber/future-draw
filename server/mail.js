@@ -14,10 +14,10 @@ function escapeHtml(value) {
 
 const red = "#e10600"
 const ink = "#1a1212"
-const white = "#ffffff"
+const white = "#fffffe"
 const display = "Syne, Arial Narrow, sans-serif"
 const ui = "Geist, Segoe UI, Arial, sans-serif"
-const paper = `background:${white};background-image:linear-gradient(${white},${white});`
+const paper = `background-color:${white};background-image:linear-gradient(${white},${white});`
 
 export function formatMoney(amount) {
   const value = Number(amount)
@@ -34,7 +34,7 @@ function button(href, label) {
   const safeLabel = escapeHtml(label)
   return `<table role="presentation" cellpadding="0" cellspacing="0">
     <tr>
-      <td class="fd-btn" bgcolor="${red}" style="background:${red};">
+      <td class="fd-btn" bgcolor="${red}" style="background-color:${red};background-image:linear-gradient(${red},${red});border-radius:2px;">
         <a class="fd-btn" href="${safeHref}" style="display:inline-block;padding:16px 28px;font-family:${ui};font-size:16px;font-weight:600;line-height:1;color:${white};text-decoration:none;">${safeLabel}</a>
       </td>
     </tr>
@@ -51,16 +51,19 @@ function frame({ kicker, title, intro, blocks, action, note }) {
     <meta name="supported-color-schemes" content="light">
     <style>
       :root { color-scheme: light only; supported-color-schemes: light; }
-      body, table, td { background: ${white} !important; }
       .fd-red { color: ${red} !important; }
       .fd-ink { color: ${ink} !important; }
-      .fd-bar, .fd-btn, .fd-btn a { background: ${red} !important; }
+      .fd-bar, .fd-btn, .fd-btn a { background-color: ${red} !important; background-image: linear-gradient(${red},${red}) !important; }
       .fd-btn, .fd-btn a { color: ${white} !important; }
+      u + .body .gmail-blend-screen { background: #000; mix-blend-mode: screen; }
+      u + .body .gmail-blend-difference { background: #000; mix-blend-mode: difference; }
     </style>
   </head>
-  <body class="fd-bg" bgcolor="${white}" style="margin:0;padding:0;${paper}color:${ink};">
+  <body class="body" bgcolor="${white}" style="margin:0;padding:0;${paper}color:${ink};">
+    <div class="gmail-blend-screen" style="${paper}">
+    <div class="gmail-blend-difference" style="${paper}">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
-      <tr><td class="fd-bar" bgcolor="${red}" height="8" style="background:${red};font-size:0;line-height:0;">&nbsp;</td></tr>
+      <tr><td class="fd-bar" bgcolor="${red}" height="8" style="background-color:${red};background-image:linear-gradient(${red},${red});font-size:0;line-height:0;">&nbsp;</td></tr>
       <tr>
         <td align="center" bgcolor="${white}" style="padding:36px 20px 40px;${paper}">
           <table role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="${white}" style="width:100%;max-width:560px;${paper}">
@@ -88,8 +91,10 @@ function frame({ kicker, title, intro, blocks, action, note }) {
           </table>
         </td>
       </tr>
-      <tr><td class="fd-bar" bgcolor="${red}" height="8" style="background:${red};font-size:0;line-height:0;">&nbsp;</td></tr>
+      <tr><td class="fd-bar" bgcolor="${red}" height="8" style="background-color:${red};background-image:linear-gradient(${red},${red});font-size:0;line-height:0;">&nbsp;</td></tr>
     </table>
+    </div>
+    </div>
   </body>
 </html>`
 }
@@ -101,7 +106,7 @@ function paragraph(html) {
 function amountBlock(amount, caption) {
   return `<tr>
     <td bgcolor="${white}" style="padding-top:28px;${paper}">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}border-top:4px solid ${red};">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
         <tr>
           <td bgcolor="${white}" style="padding:24px 0 8px;${paper}">
             <div class="fd-red" style="font-family:${ui};font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};">Amount to claim</div>
@@ -206,6 +211,9 @@ export async function sendMail({ to, subject, text, html }) {
     subject,
     text,
     html,
+    headers: {
+      "X-Mailin-Track": "0",
+    },
   }
   let last
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -355,9 +363,12 @@ export function selectionLetter(record, link) {
     `Prize: ${record.prizeName}`,
     `Amount to claim: ${formatMoney(record.cash)}`,
     "",
-    `Link: ${link}`,
+    `Delivery: ${link}`,
     "",
-    "The link above is the delivery path chosen by the desk for that prize.",
+    "Open that link. It goes straight to the logistics company so the prize can be delivered to your address, worldwide.",
+    "",
+    `Phone: ${record.phone || "None"}`,
+    `Country: ${record.country || "None"}`,
     "",
     "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required. This letter is from the Future Draw desk.",
   ].join("\n")
@@ -367,11 +378,12 @@ export function selectionLetter(record, link) {
     intro: paragraph("The Future Draw desk has selected your claim."),
     blocks: [
       amountBlock(record.cash, record.prizeName || "Prize"),
-      paragraph(`Identification <strong style="color:${red};">${escapeHtml(record.id)}</strong>`),
-      paragraph(`${escapeHtml(record.name)} · ${escapeHtml(record.email)}`),
+      paragraph(`Identification <strong class="fd-red" style="color:${red};">${escapeHtml(record.id)}</strong>`),
+      paragraph(`${escapeHtml(record.name)} · ${escapeHtml(record.email)} · ${escapeHtml(record.phone || "None")} · ${escapeHtml(record.country || "None")}`),
+      paragraph(`<span class="fd-red" style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};">Delivery</span>`),
+      paragraph("Open the button. It goes straight to the logistics company so the prize can be delivered to your address, worldwide."),
     ],
-    action: paragraph(`${button(link, "Open your link")}<div style="padding-top:12px;font-size:14px;line-height:1.4;"><a href="${safeLink}" style="color:${red};">${safeLink}</a></div>`),
-    note: paragraph("That link is the one the desk pasted for this claim."),
+    action: paragraph(`${button(link, "Open delivery")}<div style="padding-top:12px;font-size:14px;line-height:1.4;"><a class="fd-red" href="${safeLink}" style="color:${red};">${safeLink}</a></div>`),
   })
   return { subject, text, html }
 }

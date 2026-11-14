@@ -130,7 +130,8 @@ export async function handleAdmin(req, res) {
   }
 
   if (parts.length === 3 && parts[2] === "letter") {
-    const link = deliveryLink(body.deliveryUrl) || "https://futuredraw.live/"
+    const link = deliveryLink(body.deliveryUrl)
+    if (!link) return send(res, 400, { error: "Paste the logistics link. It must start with http:// or https://." })
     const current = listEntries().find((item) => item.id === id)
     if (!current) return send(res, 404, { error: "This claim is not on the desk. Refresh and try that person again." })
     if (current.status !== "selected") {

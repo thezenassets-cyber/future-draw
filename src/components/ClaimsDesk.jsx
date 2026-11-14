@@ -100,7 +100,7 @@ export default function ClaimsDesk({ pass }) {
       <h2>The desk</h2>
       <p className="lede">
         Every finished entry appears here with the name, email, phone, country, prize, and amount.
-        Set the standing to Selected, then send the congratulations letter.
+        Set the standing to Selected, paste the logistics link, then send. The button in the letter opens that company directly.
       </p>
       {mail ? <MailState mail={mail} /> : null}
       {error ? <p className="error">{error}</p> : null}
@@ -206,7 +206,7 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
   async function sendLetter(event) {
     event.preventDefault()
     const sent = await post(`/api/admin/claims/${claim.id}/letter`, {
-      deliveryUrl: delivery.trim() || "https://futuredraw.live/",
+      deliveryUrl: delivery.trim(),
     })
     if (sent) setNote(`Congratulations letter sent to ${claim.email}.`)
   }
@@ -271,11 +271,11 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
         <p className="kicker">Letter</p>
         <p className="letter-hint">
           {selected
-            ? `Send the congratulations letter to ${claim.email}. It shows ${formatCash(Number(claim.cash) || 0)}. An empty link opens the Future Draw site.`
-            : "Set the standing to Selected. The send button turns on after that."}
+            ? `Paste the logistics link for ${claim.name}. The letter shows ${formatCash(Number(claim.cash) || 0)} and opens that page for delivery to their address, worldwide.`
+            : "Set the standing to Selected. Then paste the logistics link. The send button turns on after both."}
         </p>
         <div className="field">
-          <label htmlFor={`delivery-${claim.id}`}>Paste the link</label>
+          <label htmlFor={`delivery-${claim.id}`}>Paste the logistics link</label>
           <input
             id={`delivery-${claim.id}`}
             type="text"
@@ -287,11 +287,11 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
             onChange={(event) => setDelivery(event.target.value)}
           />
         </div>
-        {delivery.trim() ? <p className="claim-meta">The button opens {delivery.trim()}</p> : null}
+        {delivery.trim() ? <p className="claim-meta">The button opens the logistics page {delivery.trim()}</p> : null}
         {error ? <p className="error">{error}</p> : null}
         {note ? <p className="claim-meta">{note}</p> : null}
         <div className="drawer-actions">
-          <button className="btn" type="submit" disabled={busy || !selected}>
+          <button className="btn" type="submit" disabled={busy || !selected || !delivery.trim()}>
             {busy ? "Sending…" : "Send the letter"}
           </button>
           {claim.adminNotice !== "sent" ? (
