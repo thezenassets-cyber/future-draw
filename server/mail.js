@@ -78,8 +78,10 @@ export async function sendMail({ to, subject, text, html }) {
       pass: process.env.BREVO_SMTP_KEY,
     },
   })
+  const replyTo = String(process.env.ADMIN_EMAIL || "thefuturedraw@gmail.com").trim()
   return transport.sendMail({
     from: process.env.MAIL_FROM,
+    replyTo,
     to,
     subject,
     text,
