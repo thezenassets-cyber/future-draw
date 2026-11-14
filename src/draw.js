@@ -3,6 +3,8 @@ import { site } from "./config.js"
 
 const KEY = "meridian-draw-end"
 const CHANGE = "meridian-draw-change"
+let suppressServerClock = 0
+let clockGeneration = 0
 
 export function getDrawEnd() {
   const stored = localStorage.getItem(KEY)
@@ -14,9 +16,15 @@ export function getDrawEnd() {
 }
 
 export function setDrawEnd(end) {
+  clockGeneration += 1
+  suppressServerClock = Date.now() + 10000
   localStorage.setItem(KEY, String(end))
   window.dispatchEvent(new Event(CHANGE))
   return end
+}
+
+export function releaseServerClock() {
+  suppressServerClock = 0
 }
 
 export function setDrawDuration({ days, hours, minutes = 0 }) {
@@ -45,17 +53,29 @@ export function useDrawEnd() {
     window.addEventListener(CHANGE, sync)
     window.addEventListener("storage", sync)
     let active = true
-    fetch("/api/draw")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body) => {
-        const end = Number(body?.end)
-        if (!active || body?.end == null || !Number.isFinite(end)) return
-        localStorage.setItem(KEY, String(end))
+    let ticket = 0
+    async function pull() {
+      if (Date.now() < suppressServerClock) return
+      const mine = ++ticket
+      const generation = clockGeneration
+      try {
+        const response = await fetch("/api/draw", { cache: "no-store" })
+        if (!response.ok || !active || mine !== ticket || generation !== clockGeneration) return
+        const body = await response.json()
+        const next = Number(body?.end)
+        if (body?.end == null || !Number.isFinite(next)) return
+        if (Number(localStorage.getItem(KEY)) === next) return
+        localStorage.setItem(KEY, String(next))
         window.dispatchEvent(new Event(CHANGE))
-      })
-      .catch(() => {})
+      } catch {
+        // The clock already on screen stays until the next check.
+      }
+    }
+    pull()
+    const timer = setInterval(pull, 3000)
     return () => {
       active = false
+      clearInterval(timer)
       window.removeEventListener(CHANGE, sync)
       window.removeEventListener("storage", sync)
     }

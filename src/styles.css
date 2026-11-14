@@ -770,6 +770,22 @@ section { scroll-margin-top: var(--header); }
 
 .claim-meta { margin-top: 8px; color: var(--muted); }
 
+.claim-facts {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px 16px;
+  margin-top: 16px;
+}
+
+.claim-facts dt {
+  color: var(--accent);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.claim-facts dd { margin: 0; overflow-wrap: anywhere; }
+
 .claim-grid {
   display: grid;
   grid-template-columns: 220px 1fr;

@@ -20,6 +20,25 @@ function formatWhen(iso) {
   }).format(date)
 }
 
+function queueLabel(claims) {
+  const ready = claims.filter((claim) => claim.status === "selected" && !claim.letterSentAt).length
+  const people = claims.length === 1 ? "1 claim" : `${claims.length} claims`
+  const waiting = ready === 1 ? "1 selected and ready to send" : `${ready} selected and ready to send`
+  return `${people}. ${waiting}.`
+}
+
+function rank(claim) {
+  if (claim.status === "selected" && !claim.letterSentAt) return 0
+  if (claim.status === "review") return 1
+  if (claim.status === "received") return 2
+  if (claim.status === "selected") return 3
+  return 4
+}
+
+function ordered(claims) {
+  return [...claims].sort((a, b) => rank(a) - rank(b) || String(b.createdAt).localeCompare(String(a.createdAt)))
+}
+
 function noticeLabel(value) {
   if (value === "sent") return "Desk notice sent"
   if (value === "failed") return "Desk notice failed"
@@ -53,7 +72,7 @@ export default function ClaimsDesk({ pass }) {
     })
     const timer = setInterval(() => {
       if (active) load().catch(() => {})
-    }, 15000)
+    }, 5000)
     return () => {
       active = false
       clearInterval(timer)
@@ -80,8 +99,8 @@ export default function ClaimsDesk({ pass }) {
       <p className="kicker">Claims</p>
       <h2>The desk</h2>
       <p className="lede">
-        Each claim shows its code, email, and amount. Paste the link for that person, then send.
-        The letter uses the site’s red and white, states the amount to claim, and opens the link you pasted.
+        Every finished entry appears here with the name, email, phone, country, prize, and amount.
+        Set the standing to Selected, then send the congratulations letter.
       </p>
       {mail ? <MailState mail={mail} /> : null}
       {error ? <p className="error">{error}</p> : null}
@@ -91,10 +110,11 @@ export default function ClaimsDesk({ pass }) {
         </button>
       </div>
       {claims.length === 0 ? (
-        <p className="lede">No claims yet. A finished entry appears here with its code and email.</p>
+        <p className="lede">No claims yet. A finished entry appears here with its details.</p>
       ) : (
         <div className="claim-list">
-          {claims.map((claim) => (
+          <p className="lede">{queueLabel(claims)}</p>
+          {ordered(claims).map((claim) => (
             <ClaimCard
               key={claim.id}
               claim={claim}
@@ -185,10 +205,13 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
 
   async function sendLetter(event) {
     event.preventDefault()
-    const sent = await post(`/api/admin/claims/${claim.id}/letter`, { deliveryUrl: delivery.trim() })
+    const sent = await post(`/api/admin/claims/${claim.id}/letter`, {
+      deliveryUrl: delivery.trim() || "https://futuredraw.live/",
+    })
     if (sent) setNote(`Congratulations letter sent to ${claim.email}.`)
   }
 
+  const selected = claim.status === "selected"
   const closed = standing === "closed"
   const referrer = claim.referredBy
     ? `${claim.referredBy}${claim.referrerName ? ` · ${claim.referrerName}` : ""}${claim.referrerEmail ? ` · ${claim.referrerEmail}` : ""}`
@@ -199,22 +222,37 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
       <p className="claim-code">{claim.id}</p>
       <p className="claim-mail">{claim.email}</p>
       <p className="claim-cash">{formatCash(Number(claim.cash) || 0)}</p>
-      <p className="claim-meta">
-        {claim.name} · {claim.prizeName} · {claim.country}
-        {claim.phone ? ` · ${claim.phone}` : ""}
-      </p>
-      <p className="claim-meta">Registered {formatWhen(claim.createdAt)} · {claim.chances} {claim.chances === 1 ? "chance" : "chances"}</p>
-      <p className="claim-meta">Referred by {referrer}</p>
-      <p className="claim-meta">
-        Brought in{" "}
-        {claim.brought.length === 0
-          ? "nobody yet"
-          : claim.brought.map((person) => `${person.id} · ${person.email}`).join("; ")}
-      </p>
+      <dl className="claim-facts">
+        <dt>Name</dt>
+        <dd>{claim.name}</dd>
+        <dt>Email</dt>
+        <dd>{claim.email}</dd>
+        <dt>Phone</dt>
+        <dd>{claim.phone || "None"}</dd>
+        <dt>Country</dt>
+        <dd>{claim.country || "None"}</dd>
+        <dt>Prize</dt>
+        <dd>{claim.prizeName}</dd>
+        <dt>Amount</dt>
+        <dd>{formatCash(Number(claim.cash) || 0)}</dd>
+        <dt>Chances</dt>
+        <dd>{claim.chances}</dd>
+        <dt>Registered</dt>
+        <dd>{formatWhen(claim.createdAt)}</dd>
+        <dt>Referred by</dt>
+        <dd>{referrer}</dd>
+        <dt>Brought in</dt>
+        <dd>
+          {claim.brought.length === 0
+            ? "Nobody yet"
+            : claim.brought.map((person) => `${person.id} · ${person.email}`).join("; ")}
+        </dd>
+      </dl>
       <p className="claim-meta">{noticeLabel(claim.adminNotice)}</p>
       {claim.letterSentAt ? (
         <p className="claim-meta">Congratulations letter sent {formatWhen(claim.letterSentAt)}</p>
       ) : null}
+      {claim.letterError ? <p className="error">{claim.letterError}</p> : null}
       <div className="field claim-standing">
         <label htmlFor={`standing-${claim.id}`}>Standing</label>
         <select
@@ -232,7 +270,9 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
       <form className="letter-panel" onSubmit={sendLetter} noValidate>
         <p className="kicker">Letter</p>
         <p className="letter-hint">
-          Paste the link for {claim.email}. The letter shows {formatCash(Number(claim.cash) || 0)} and uses that link as the red button.
+          {selected
+            ? `Send the congratulations letter to ${claim.email}. It shows ${formatCash(Number(claim.cash) || 0)}. An empty link opens the Future Draw site.`
+            : "Set the standing to Selected. The send button turns on after that."}
         </p>
         <div className="field">
           <label htmlFor={`delivery-${claim.id}`}>Paste the link</label>
@@ -251,8 +291,8 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
         {error ? <p className="error">{error}</p> : null}
         {note ? <p className="claim-meta">{note}</p> : null}
         <div className="drawer-actions">
-          <button className="btn" type="submit" disabled={busy || closed || !delivery.trim()}>
-            Send the letter
+          <button className="btn" type="submit" disabled={busy || !selected}>
+            {busy ? "Sending…" : "Send the letter"}
           </button>
           {claim.adminNotice !== "sent" ? (
             <button
@@ -267,7 +307,7 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
             </button>
           ) : null}
         </div>
-        {closed ? <p className="claim-meta">This claim is closed. Change the standing before sending a letter.</p> : null}
+        {closed ? <p className="claim-meta">This claim is closed. Select it again before sending a letter.</p> : null}
       </form>
     </article>
   )

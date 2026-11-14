@@ -2,7 +2,7 @@ import { useState } from "react"
 import ClaimsDesk from "./ClaimsDesk.jsx"
 import InstallApp from "./InstallApp.jsx"
 import { site } from "../config.js"
-import { formatDrawWhen, getDrawEnd, setDrawDuration, setDrawEnd, useCountdown, useDrawEnd } from "../draw.js"
+import { formatDrawWhen, getDrawEnd, releaseServerClock, setDrawDuration, setDrawEnd, useCountdown, useDrawEnd } from "../draw.js"
 
 function pad(value) {
   return String(value).padStart(2, "0")
@@ -88,11 +88,14 @@ export default function Admin() {
           "X-Admin-Pass": pass,
         },
         body: JSON.stringify({ end }),
+        cache: "no-store",
       })
-      if (!response.ok) return "This device has the new end. The public clock did not update."
-      return "The public clock now uses this end."
+      if (!response.ok) return "The public clock did not reset. Set the duration again."
+      return "The public countdown reset to this end."
     } catch {
-      return "This device has the new end. The public clock did not update."
+      return "The public clock did not reset. Set the duration again."
+    } finally {
+      releaseServerClock()
     }
   }
 
@@ -135,7 +138,7 @@ export default function Admin() {
         ) : null}
         <p className="lede">
           Live end: {when.date} at {when.time}. Set a duration or any date and time. The public
-          clock follows that end.
+          countdown resets to that end immediately.
         </p>
         {clockNote ? <p className="lede">{clockNote}</p> : null}
         <div className="clock admin-clock" id="clock" aria-label="Time until the draw">

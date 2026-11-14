@@ -192,21 +192,33 @@ export async function sendMail({ to, subject, text, html }) {
     secure: false,
     connectionTimeout: 10000,
     greetingTimeout: 10000,
-    socketTimeout: 15000,
+    socketTimeout: 20000,
     auth: {
       user: process.env.BREVO_SMTP_LOGIN,
       pass: process.env.BREVO_SMTP_KEY,
     },
   })
   const replyTo = String(process.env.ADMIN_EMAIL || "thefuturedraw@gmail.com").trim()
-  return transport.sendMail({
+  const message = {
     from: process.env.MAIL_FROM,
     replyTo,
     to,
     subject,
     text,
     html,
-  })
+  }
+  let last
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await transport.sendMail(message)
+    } catch (error) {
+      last = error
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 500))
+    }
+  }
+  const wrapped = new Error(last?.message || "The letter could not be sent.")
+  wrapped.status = 502
+  throw wrapped
 }
 
 export function adminInbox() {

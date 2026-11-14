@@ -56,6 +56,7 @@ function present(entries, record) {
     status: standings.has(record.status) ? record.status : "received",
     deliveryUrl: record.deliveryUrl || "",
     letterSentAt: record.letterSentAt || "",
+    letterError: record.letterError || "",
     adminNotice: record.adminNotice || "unconfigured",
   }
 }
@@ -129,24 +130,29 @@ export async function handleAdmin(req, res) {
   }
 
   if (parts.length === 3 && parts[2] === "letter") {
-    const link = deliveryLink(body.deliveryUrl)
-    if (!link) return send(res, 400, { error: "Enter a delivery link that starts with http:// or https://." })
+    const link = deliveryLink(body.deliveryUrl) || "https://futuredraw.live/"
     const current = listEntries().find((item) => item.id === id)
-    if (!current) return send(res, 404, { error: "Not found" })
-    if (current.status === "closed") {
-      return send(res, 409, { error: "This claim is closed. Change the standing before sending a letter." })
+    if (!current) return send(res, 404, { error: "This claim is not on the desk. Refresh and try that person again." })
+    if (current.status !== "selected") {
+      return send(res, 409, { error: "Select this claim before sending the congratulations letter." })
     }
     try {
       await sendSelection(current, link)
     } catch (error) {
+      const message = error.message || "The letter could not be sent."
+      await updateEntries((entries) => {
+        const item = entries.find((entry) => entry.id === id)
+        if (item) item.letterError = message
+      })
       const status = error.status || 502
-      return send(res, status, { error: error.message || "The letter could not be sent." })
+      return send(res, status, { error: message, ...claimsPayload() })
     }
     await updateEntries((entries) => {
       const item = entries.find((entry) => entry.id === id)
       if (!item) return
       item.deliveryUrl = link
       item.letterSentAt = new Date().toISOString()
+      item.letterError = ""
       item.status = "selected"
     })
     return send(res, 200, claimsPayload())
