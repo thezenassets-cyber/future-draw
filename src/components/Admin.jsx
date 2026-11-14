@@ -126,12 +126,19 @@ export default function Admin() {
       <div className="wrap">
         <p className="kicker">Admin</p>
         <h1 className="admin-title">Draw countdown</h1>
+        {unlocked ? (
+          <nav className="admin-nav" aria-label="Desk">
+            <a href="#clock">Clock</a>
+            <a href="#claims">Claims</a>
+            <a href="#test-letter">Test letter</a>
+          </nav>
+        ) : null}
         <p className="lede">
           Live end: {when.date} at {when.time}. Set a duration or any date and time. The public
           clock follows that end.
         </p>
         {clockNote ? <p className="lede">{clockNote}</p> : null}
-        <div className="clock admin-clock" aria-label="Time until the draw">
+        <div className="clock admin-clock" id="clock" aria-label="Time until the draw">
           {[
             ["Days", String(time.days).padStart(2, "0")],
             ["Hours", pad(time.hours)],
@@ -209,7 +216,7 @@ export default function Admin() {
         ) : null}
         {unlocked ? <ClaimsDesk pass={pass} /> : null}
         {unlocked ? (
-          <form className="admin-panel" onSubmit={sendTest} noValidate>
+          <form className="admin-panel" id="test-letter" onSubmit={sendTest} noValidate>
             <p className="kicker">Desk letter</p>
             <div className="field">
               <label htmlFor="test-mail">Send a test letter</label>

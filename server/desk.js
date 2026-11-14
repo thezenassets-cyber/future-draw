@@ -45,6 +45,7 @@ function present(entries, record) {
     phone: record.phone,
     country: record.country,
     prizeName: record.prizeName,
+    cash: Number(record.cash) || 0,
     createdAt: record.createdAt,
     bonusEntries: Number(record.bonusEntries) || 0,
     chances: 1 + (Number(record.bonusEntries) || 0),

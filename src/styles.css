@@ -658,6 +658,19 @@ section { scroll-margin-top: var(--header); }
 
 .admin .lede { margin-top: 16px; }
 
+.admin-nav {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.admin-nav a {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .admin-clock { margin-top: 32px; }
 
 .admin-panel {
@@ -733,6 +746,26 @@ section { scroll-margin-top: var(--header); }
   margin-top: 8px;
   font-size: 18px;
   overflow-wrap: anywhere;
+}
+
+.claim-cash {
+  margin-top: 8px;
+  font-size: 28px;
+  color: var(--accent);
+}
+
+.claim-standing { max-width: 280px; margin-top: 20px; }
+
+.letter-panel {
+  margin-top: 8px;
+  padding: 20px;
+  background: var(--bg-alt);
+  border-top: 4px solid var(--accent);
+}
+
+.letter-hint {
+  margin: 8px 0 16px;
+  color: var(--muted);
 }
 
 .claim-meta { margin-top: 8px; color: var(--muted); }

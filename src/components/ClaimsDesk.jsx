@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { formatCash } from "../prizes.js"
 
 const standings = [
   ["received", "Received"],
@@ -75,13 +76,12 @@ export default function ClaimsDesk({ pass }) {
   }
 
   return (
-    <section className="admin-desk">
+    <section className="admin-desk" id="claims">
       <p className="kicker">Claims</p>
       <h2>The desk</h2>
       <p className="lede">
-        Each finished claim appears with its identification code, then the email on that claim.
-        You choose the standing. A congratulations letter goes only to that email, with the delivery
-        link you enter.
+        Each claim shows its code, email, and amount. Paste the link for that person, then send.
+        The letter uses the site’s red and white, states the amount to claim, and opens the link you pasted.
       </p>
       {mail ? <MailState mail={mail} /> : null}
       {error ? <p className="error">{error}</p> : null}
@@ -198,6 +198,7 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
     <article className="claim-card">
       <p className="claim-code">{claim.id}</p>
       <p className="claim-mail">{claim.email}</p>
+      <p className="claim-cash">{formatCash(Number(claim.cash) || 0)}</p>
       <p className="claim-meta">
         {claim.name} · {claim.prizeName} · {claim.country}
         {claim.phone ? ` · ${claim.phone}` : ""}
@@ -214,53 +215,60 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
       {claim.letterSentAt ? (
         <p className="claim-meta">Congratulations letter sent {formatWhen(claim.letterSentAt)}</p>
       ) : null}
-      <div className="claim-grid">
-        <div className="field">
-          <label htmlFor={`standing-${claim.id}`}>Standing</label>
-          <select
-            id={`standing-${claim.id}`}
-            value={standing}
-            onChange={(event) => changeStanding(event.target.value)}
-          >
-            {standings.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <form onSubmit={sendLetter} noValidate>
-          <div className="field">
-            <label htmlFor={`delivery-${claim.id}`}>Delivery link</label>
-            <input
-              id={`delivery-${claim.id}`}
-              type="url"
-              placeholder="https://"
-              value={delivery}
-              onChange={(event) => setDelivery(event.target.value)}
-            />
-          </div>
-          {error ? <p className="error">{error}</p> : null}
-          {note ? <p className="claim-meta">{note}</p> : null}
-          <div className="drawer-actions">
-            <button className="btn" type="submit" disabled={busy || closed}>
-              Send congratulations to {claim.email}
-            </button>
-            {claim.adminNotice !== "sent" ? (
-              <button
-                className="btn btn-ghost"
-                type="button"
-                disabled={busy}
-                onClick={() => post(`/api/admin/claims/${claim.id}/notify`, {}).then((sent) => {
-                  if (sent) setNote("Desk notice sent.")
-                })}
-              >
-                Notify the desk
-              </button>
-            ) : null}
-          </div>
-        </form>
+      <div className="field claim-standing">
+        <label htmlFor={`standing-${claim.id}`}>Standing</label>
+        <select
+          id={`standing-${claim.id}`}
+          value={standing}
+          onChange={(event) => changeStanding(event.target.value)}
+        >
+          {standings.map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
       </div>
+      <form className="letter-panel" onSubmit={sendLetter} noValidate>
+        <p className="kicker">Letter</p>
+        <p className="letter-hint">
+          Paste the link for {claim.email}. The letter shows {formatCash(Number(claim.cash) || 0)} and uses that link as the red button.
+        </p>
+        <div className="field">
+          <label htmlFor={`delivery-${claim.id}`}>Paste the link</label>
+          <input
+            id={`delivery-${claim.id}`}
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            spellCheck="false"
+            placeholder="https://"
+            value={delivery}
+            onChange={(event) => setDelivery(event.target.value)}
+          />
+        </div>
+        {delivery.trim() ? <p className="claim-meta">The button opens {delivery.trim()}</p> : null}
+        {error ? <p className="error">{error}</p> : null}
+        {note ? <p className="claim-meta">{note}</p> : null}
+        <div className="drawer-actions">
+          <button className="btn" type="submit" disabled={busy || closed || !delivery.trim()}>
+            Send the letter
+          </button>
+          {claim.adminNotice !== "sent" ? (
+            <button
+              className="btn btn-ghost"
+              type="button"
+              disabled={busy}
+              onClick={() => post(`/api/admin/claims/${claim.id}/notify`, {}).then((sent) => {
+                if (sent) setNote("Desk notice sent.")
+              })}
+            >
+              Notify the desk
+            </button>
+          ) : null}
+        </div>
+        {closed ? <p className="claim-meta">This claim is closed. Change the standing before sending a letter.</p> : null}
+      </form>
     </article>
   )
 }
