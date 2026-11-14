@@ -1,12 +1,15 @@
 import fs from "node:fs"
 import path from "node:path"
 import { notifyAdmin } from "./mail.js"
+import { storeFile } from "./store.js"
 
-const file = path.join(process.env.DATA_DIR || path.resolve("data"), "entries.json")
+function file() {
+  return storeFile("entries.json")
+}
 
 function read() {
   try {
-    const parsed = JSON.parse(fs.readFileSync(file, "utf8"))
+    const parsed = JSON.parse(fs.readFileSync(file(), "utf8"))
     return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
@@ -14,8 +17,8 @@ function read() {
 }
 
 function write(entries) {
-  fs.mkdirSync(path.dirname(file), { recursive: true })
-  fs.writeFileSync(file, JSON.stringify(entries, null, 2))
+  fs.mkdirSync(path.dirname(file()), { recursive: true })
+  fs.writeFileSync(file(), JSON.stringify(entries, null, 2))
 }
 
 let chain = Promise.resolve()

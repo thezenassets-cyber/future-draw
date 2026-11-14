@@ -1,11 +1,14 @@
 import fs from "node:fs"
 import path from "node:path"
+import { storeFile } from "./store.js"
 
-const file = path.join(process.env.DATA_DIR || path.resolve("data"), "draw-end.json")
+function file() {
+  return storeFile("draw-end.json")
+}
 
 export function readDrawEnd() {
   try {
-    const end = Number(JSON.parse(fs.readFileSync(file, "utf8")).end)
+    const end = Number(JSON.parse(fs.readFileSync(file(), "utf8")).end)
     return Number.isFinite(end) ? end : null
   } catch {
     return null
@@ -13,8 +16,8 @@ export function readDrawEnd() {
 }
 
 export function writeDrawEnd(end) {
-  fs.mkdirSync(path.dirname(file), { recursive: true })
-  fs.writeFileSync(file, JSON.stringify({ end }))
+  fs.mkdirSync(path.dirname(file()), { recursive: true })
+  fs.writeFileSync(file(), JSON.stringify({ end }))
   return end
 }
 
