@@ -44,7 +44,18 @@ export function useDrawEnd() {
     const sync = () => setEnd(getDrawEnd())
     window.addEventListener(CHANGE, sync)
     window.addEventListener("storage", sync)
+    let active = true
+    fetch("/api/draw")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        const end = Number(body?.end)
+        if (!active || body?.end == null || !Number.isFinite(end)) return
+        localStorage.setItem(KEY, String(end))
+        window.dispatchEvent(new Event(CHANGE))
+      })
+      .catch(() => {})
     return () => {
+      active = false
       window.removeEventListener(CHANGE, sync)
       window.removeEventListener("storage", sync)
     }

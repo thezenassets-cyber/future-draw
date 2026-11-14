@@ -1,3 +1,4 @@
+import { writeDrawEnd } from "./clock.js"
 import { listEntries, updateEntries } from "./entries-api.js"
 import { deliveryLink, handleTestMail, mailStatus, notifyAdmin, sendSelection } from "./mail.js"
 
@@ -75,6 +76,19 @@ export async function handleAdmin(req, res) {
   }
 
   if (!authorized(req)) return send(res, 401, { error: "The desk is locked." })
+
+  if (req.method === "POST" && parts.length === 1 && parts[0] === "draw") {
+    let body = {}
+    try {
+      body = await readBody(req)
+    } catch {
+      return send(res, 400, { error: "Invalid request." })
+    }
+    const end = Number(body.end)
+    if (!Number.isFinite(end)) return send(res, 400, { error: "Enter a date and a time." })
+    writeDrawEnd(end)
+    return send(res, 200, { end })
+  }
 
   if (req.method === "GET" && parts.length === 1 && parts[0] === "claims") {
     return send(res, 200, claimsPayload())

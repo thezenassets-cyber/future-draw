@@ -2,6 +2,7 @@ import fs from "node:fs"
 import http from "node:http"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { readDrawEnd } from "./clock.js"
 import { handleAdmin } from "./desk.js"
 import { handle } from "./entries-api.js"
 
@@ -53,6 +54,17 @@ const server = http.createServer((req, res) => {
     res.statusCode = 200
     res.setHeader("Content-Type", "text/plain; charset=utf-8")
     res.end("ok")
+    return
+  }
+  if (url === "/api/draw" || url.startsWith("/api/draw?")) {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.statusCode = 405
+      res.end("Method not allowed")
+      return
+    }
+    res.statusCode = 200
+    res.setHeader("Content-Type", "application/json")
+    res.end(JSON.stringify({ end: readDrawEnd() }))
     return
   }
   if (url === "/api/admin" || url.startsWith("/api/admin/") || url.startsWith("/api/admin?")) {

@@ -28,6 +28,7 @@ export default function Admin() {
   const [exact, setExact] = useState(() => localInput(getDrawEnd()))
   const [exactError, setExactError] = useState("")
   const [exactSaved, setExactSaved] = useState(null)
+  const [clockNote, setClockNote] = useState("")
   const [testTo, setTestTo] = useState("")
   const [testNote, setTestNote] = useState("")
   const [testError, setTestError] = useState("")
@@ -42,7 +43,7 @@ export default function Admin() {
     setUnlocked(true)
   }
 
-  function save(event) {
+  async function save(event) {
     event.preventDefault()
     const dayCount = Number(days)
     const hourCount = Number(hours)
@@ -60,9 +61,10 @@ export default function Admin() {
     setExactError("")
     setExactSaved(null)
     setSaved(formatDrawWhen(next))
+    setClockNote(await publish(next))
   }
 
-  function saveExact(event) {
+  async function saveExact(event) {
     event.preventDefault()
     const next = new Date(exact).getTime()
     if (!Number.isFinite(next)) {
@@ -74,6 +76,24 @@ export default function Admin() {
     setExactError("")
     setSaved(null)
     setExactSaved(formatDrawWhen(next))
+    setClockNote(await publish(next))
+  }
+
+  async function publish(end) {
+    try {
+      const response = await fetch("/api/admin/draw", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Pass": pass,
+        },
+        body: JSON.stringify({ end }),
+      })
+      if (!response.ok) return "This device has the new end. The public clock did not update."
+      return "The public clock now uses this end."
+    } catch {
+      return "This device has the new end. The public clock did not update."
+    }
   }
 
   async function sendTest(event) {
@@ -107,8 +127,10 @@ export default function Admin() {
         <p className="kicker">Admin</p>
         <h1 className="admin-title">Draw countdown</h1>
         <p className="lede">
-          Live end: {when.date} at {when.time}.
+          Live end: {when.date} at {when.time}. Set a duration or any date and time. The public
+          clock follows that end.
         </p>
+        {clockNote ? <p className="lede">{clockNote}</p> : null}
         <div className="clock admin-clock" aria-label="Time until the draw">
           {[
             ["Days", String(time.days).padStart(2, "0")],
