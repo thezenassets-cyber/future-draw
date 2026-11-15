@@ -21,7 +21,7 @@ export function rememberedEntryId() {
 }
 
 export async function getEntry(id) {
-  const response = await fetch(`/api/entries/${encodeURIComponent(id)}`)
+  const response = await fetch(`/api/entries/${encodeURIComponent(id)}`, { cache: "no-store" })
   if (response.status === 404) return null
   if (!response.ok) throw new Error("Could not load the entry.")
   return response.json()
@@ -30,6 +30,7 @@ export async function getEntry(id) {
 export async function saveEntry(record) {
   const response = await fetch("/api/entries", {
     method: "POST",
+    cache: "no-store",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(record),
   })

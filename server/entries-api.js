@@ -84,6 +84,7 @@ export function publicEntry(record) {
 function send(res, status, body) {
   res.statusCode = status
   res.setHeader("Content-Type", "application/json")
+  res.setHeader("Cache-Control", "no-store")
   res.end(JSON.stringify(body))
 }
 
@@ -121,7 +122,7 @@ function clean(body, entries = []) {
   const name = String(body.name || "").trim()
   const email = String(body.email || "").trim().toLowerCase()
   const supplied = String(body.id || "").trim()
-  const id = /^MD-[A-Z2-9]{6}$/.test(supplied) ? supplied : newId(entries)
+  const id = /^MD-[A-Z0-9]{6}$/.test(supplied) ? supplied : newId(entries)
   if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null
   return {
     id,

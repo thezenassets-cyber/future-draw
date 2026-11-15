@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { formatCash, prizes } from "../prizes.js"
 
 const standings = [
@@ -51,12 +51,22 @@ export default function ClaimsDesk({ pass }) {
   const [claims, setClaims] = useState([])
   const [error, setError] = useState("")
   const [query, setQuery] = useState("")
+  const ticket = useRef(0)
+
+  function show(body) {
+    ticket.current += 1
+    if (body.mail) setMail(body.mail)
+    if (Array.isArray(body.claims)) setClaims(body.claims)
+  }
 
   async function load() {
+    const mine = ++ticket.current
     const response = await fetch("/api/admin/claims", {
+      cache: "no-store",
       headers: { "X-Admin-Pass": pass },
     })
     const body = await response.json().catch(() => ({}))
+    if (mine !== ticket.current) return
     if (!response.ok) {
       setError(body.error || "The claims could not be loaded.")
       return
@@ -83,6 +93,7 @@ export default function ClaimsDesk({ pass }) {
   async function saveStanding(id, status) {
     const response = await fetch(`/api/admin/claims/${id}`, {
       method: "POST",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
         "X-Admin-Pass": pass,
@@ -91,8 +102,7 @@ export default function ClaimsDesk({ pass }) {
     })
     const body = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(body.error || "The standing could not be saved.")
-    setMail(body.mail)
-    setClaims(body.claims || [])
+    show(body)
   }
 
   return (
@@ -104,14 +114,11 @@ export default function ClaimsDesk({ pass }) {
       </p>
       {mail ? <MailState mail={mail} /> : null}
       {error ? <p className="error">{error}</p> : null}
-      <AddClaim
-        pass={pass}
-        onDone={(body) => {
-          setMail(body.mail)
-          setClaims(body.claims || [])
-        }}
-        onError={setError}
-      />
+      <p className="lede">
+        {claims.length === 0
+          ? "No claims yet. A finished entry appears here as soon as it is saved."
+          : queueLabel(claims)}
+      </p>
       <div className="desk-tools">
         <div className="field">
           <label htmlFor="claim-search">Find a claim</label>
@@ -131,7 +138,6 @@ export default function ClaimsDesk({ pass }) {
         <p className="lede">No claims yet. A finished entry appears here with its details.</p>
       ) : (
         <div className="claim-list">
-          <p className="lede">{queueLabel(claims)}</p>
           {ordered(claims).filter((claim) => matches(claim, query)).length === 0 ? (
             <p className="lede">No claim matches that search.</p>
           ) : ordered(claims).filter((claim) => matches(claim, query)).map((claim) => (
@@ -140,14 +146,24 @@ export default function ClaimsDesk({ pass }) {
               claim={claim}
               pass={pass}
               onStanding={saveStanding}
-              onDone={(body) => {
-                setMail(body.mail)
-                setClaims(body.claims || [])
-              }}
+              onDone={(body) => show(body)}
             />
           ))}
         </div>
       )}
+      <AddClaim
+        pass={pass}
+        onDone={(body) => {
+          show(body)
+          setQuery("")
+          const id = body.added?.id
+          if (!id) return
+          requestAnimationFrame(() => {
+            document.getElementById(`claim-${id}`)?.scrollIntoView({ block: "center" })
+          })
+        }}
+        onError={setError}
+      />
     </section>
   )
 }
@@ -180,6 +196,7 @@ function AddClaim({ pass, onDone, onError }) {
     try {
       const response = await fetch("/api/admin/claims", {
         method: "POST",
+        cache: "no-store",
         headers: {
           "Content-Type": "application/json",
           "X-Admin-Pass": pass,
@@ -200,13 +217,17 @@ function AddClaim({ pass, onDone, onError }) {
         onError(body.error || "The claim could not be added.")
         return
       }
+      if (!body.added?.id || !(body.claims || []).some((item) => item.id === body.added.id)) {
+        onError("The claim did not appear on the desk. Try again.")
+        return
+      }
       onDone(body)
       setName("")
       setEmail("")
       setPhone("")
       setCountry("")
       setCode("")
-      setNote("Claim added. It stays on the desk until you remove it.")
+      setNote(`${body.added.id} is on the desk. It stays until you remove it.`)
     } catch {
       onError("The claim could not be added.")
     } finally {
@@ -306,6 +327,7 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
     try {
       const response = await fetch(path, {
         method: "POST",
+        cache: "no-store",
         headers: {
           "Content-Type": "application/json",
           "X-Admin-Pass": pass,
@@ -344,7 +366,7 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
     : "Direct entry"
 
   return (
-    <article className="claim-card">
+    <article className="claim-card" id={`claim-${claim.id}`}>
       <p className="claim-code">{claim.id}</p>
       <p className="claim-mail">{claim.email}</p>
       <p className="claim-cash">{formatCash(Number(claim.cash) || 0)}</p>

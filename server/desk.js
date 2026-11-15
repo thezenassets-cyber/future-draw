@@ -7,6 +7,7 @@ const standings = new Set(["received", "review", "selected", "closed"])
 function send(res, status, body) {
   res.statusCode = status
   res.setHeader("Content-Type", "application/json")
+  res.setHeader("Cache-Control", "no-store")
   res.end(JSON.stringify(body))
 }
 
@@ -111,12 +112,14 @@ export async function handleAdmin(req, res) {
       return send(res, 409, { error: "That identification code is already on the desk." })
     }
     await updateEntries((entries) => {
-      entries.push(record)
+      if (!entries.some((item) => item.id === record.id)) entries.push(record)
     })
-    return send(res, 201, claimsPayload())
+    const saved = listEntries().find((item) => item.id === record.id)
+    if (!saved) return send(res, 500, { error: "The claim was not stored. Try again." })
+    return send(res, 201, { ...claimsPayload(), added: present(listEntries(), saved) })
   }
 
-  if (parts[0] !== "claims" || !/^MD-[A-Z2-9]{6}$/.test(parts[1] || "")) {
+  if (parts[0] !== "claims" || !/^MD-[A-Z0-9]{6}$/.test(parts[1] || "")) {
     return send(res, 404, { error: "Not found" })
   }
 
