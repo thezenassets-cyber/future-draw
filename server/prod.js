@@ -40,7 +40,7 @@ function serveSite(req, res) {
   const file = path.join(root, pathname)
   if (file.startsWith(root) && fs.existsSync(file) && fs.statSync(file).isFile()) {
     const hashed = pathname.startsWith("/assets/")
-    const fresh = pathname === "/sw.js" || pathname.endsWith(".webmanifest")
+    const fresh = pathname === "/sw.js" || pathname.endsWith(".webmanifest") || pathname === "/robots.txt" || pathname === "/sitemap.xml"
     const cache = fresh ? "no-cache" : hashed ? "public, max-age=31536000, immutable" : "public, max-age=86400"
     sendFile(res, file, cache)
     return
