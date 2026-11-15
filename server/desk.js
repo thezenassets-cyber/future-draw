@@ -1,5 +1,5 @@
 import { writeDrawEnd } from "./clock.js"
-import { listEntries, updateEntries } from "./entries-api.js"
+import { listEntries, updateEntries, buildClaim } from "./entries-api.js"
 import { deliveryLink, handleTestMail, mailStatus, notifyAdmin, sendSelection } from "./mail.js"
 
 const standings = new Set(["received", "review", "selected", "closed"])
@@ -56,6 +56,7 @@ function present(entries, record) {
     status: standings.has(record.status) ? record.status : "received",
     deliveryUrl: record.deliveryUrl || "",
     letterSentAt: record.letterSentAt || "",
+    letterSentTo: record.letterSentTo || "",
     letterError: record.letterError || "",
     adminNotice: record.adminNotice || "unconfigured",
   }
@@ -94,6 +95,25 @@ export async function handleAdmin(req, res) {
 
   if (req.method === "GET" && parts.length === 1 && parts[0] === "claims") {
     return send(res, 200, claimsPayload())
+  }
+
+  if (req.method === "POST" && parts.length === 1 && parts[0] === "claims") {
+    let body = {}
+    try {
+      body = await readBody(req)
+    } catch {
+      return send(res, 400, { error: "Invalid request." })
+    }
+    const current = listEntries()
+    const record = buildClaim(body, current)
+    if (!record) return send(res, 400, { error: "Enter the name and email." })
+    if (current.some((item) => item.id === record.id)) {
+      return send(res, 409, { error: "That identification code is already on the desk." })
+    }
+    await updateEntries((entries) => {
+      entries.push(record)
+    })
+    return send(res, 201, claimsPayload())
   }
 
   if (parts[0] !== "claims" || !/^MD-[A-Z2-9]{6}$/.test(parts[1] || "")) {
@@ -137,8 +157,12 @@ export async function handleAdmin(req, res) {
     if (current.status !== "selected") {
       return send(res, 409, { error: "Select this claim before sending the congratulations letter." })
     }
+    const to = String(body.to || current.email || "").trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return send(res, 400, { error: "Enter the email that should receive the letter." })
+    }
     try {
-      await sendSelection(current, link)
+      await sendSelection(current, link, to)
     } catch (error) {
       const message = error.message || "The letter could not be sent."
       await updateEntries((entries) => {
@@ -153,9 +177,21 @@ export async function handleAdmin(req, res) {
       if (!item) return
       item.deliveryUrl = link
       item.letterSentAt = new Date().toISOString()
+      item.letterSentTo = to
       item.letterError = ""
       item.status = "selected"
     })
+    return send(res, 200, claimsPayload())
+  }
+
+  if (parts.length === 3 && parts[2] === "remove") {
+    const removed = await updateEntries((entries) => {
+      const index = entries.findIndex((item) => item.id === id)
+      if (index < 0) return false
+      entries.splice(index, 1)
+      return true
+    }, { allowShrink: true })
+    if (!removed) return send(res, 404, { error: "This claim is not on the desk." })
     return send(res, 200, claimsPayload())
   }
 

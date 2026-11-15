@@ -412,9 +412,9 @@ export async function notifyAdmin(record) {
   }
 }
 
-export async function sendSelection(record, link) {
+export async function sendSelection(record, link, to = record.email) {
   const message = selectionLetter(record, link)
-  await sendMail({ to: record.email, subject: message.subject, text: message.text, html: message.html })
+  await sendMail({ to, subject: message.subject, text: message.text, html: message.html })
 }
 
 function letter(to) {

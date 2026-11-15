@@ -7,18 +7,39 @@ function file() {
   return storeFile("entries.json")
 }
 
+function readFile(target) {
+  const text = fs.readFileSync(target, "utf8")
+  if (!text.trim()) return []
+  const parsed = JSON.parse(text)
+  if (!Array.isArray(parsed)) throw new Error("Claims file is not a list.")
+  return parsed
+}
+
 function read() {
+  const target = file()
+  const backup = `${target}.bak`
+  if (!fs.existsSync(target)) return []
   try {
-    const parsed = JSON.parse(fs.readFileSync(file(), "utf8"))
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
+    return readFile(target)
+  } catch (error) {
+    if (!fs.existsSync(backup)) throw error
+    return readFile(backup)
   }
 }
 
 function write(entries) {
-  fs.mkdirSync(path.dirname(file()), { recursive: true })
-  fs.writeFileSync(file(), JSON.stringify(entries, null, 2))
+  const target = file()
+  const directory = path.dirname(target)
+  fs.mkdirSync(directory, { recursive: true })
+  const temp = path.join(directory, `.${path.basename(target)}.${process.pid}.tmp`)
+  fs.writeFileSync(temp, JSON.stringify(entries, null, 2))
+  try {
+    fs.renameSync(temp, target)
+  } catch {
+    fs.copyFileSync(temp, target)
+    fs.unlinkSync(temp)
+  }
+  fs.copyFileSync(target, `${target}.bak`)
 }
 
 let chain = Promise.resolve()
@@ -27,10 +48,15 @@ export function listEntries() {
   return read()
 }
 
-export function updateEntries(mutator) {
+export function updateEntries(mutator, options = {}) {
   const run = chain.then(async () => {
     const entries = read()
+    const before = entries.map((item) => item.id)
     const result = await mutator(entries)
+    const ids = new Set(entries.map((item) => item.id))
+    if (!options.allowShrink && before.some((id) => !ids.has(id))) {
+      throw new Error("Existing claims are kept until the desk removes one.")
+    }
     write(entries)
     return result
   })
@@ -77,12 +103,26 @@ function readBody(req) {
   })
 }
 
-function clean(body) {
+function newId(entries) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  const used = new Set(entries.map((item) => item.id))
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    let body = ""
+    for (let index = 0; index < 6; index += 1) {
+      body += alphabet[Math.floor(Math.random() * alphabet.length)]
+    }
+    const id = `MD-${body}`
+    if (!used.has(id)) return id
+  }
+  return `MD-${Date.now().toString(36).slice(-6).toUpperCase()}`
+}
+
+function clean(body, entries = []) {
   const name = String(body.name || "").trim()
   const email = String(body.email || "").trim().toLowerCase()
-  const id = String(body.id || "").trim()
+  const supplied = String(body.id || "").trim()
+  const id = /^MD-[A-Z2-9]{6}$/.test(supplied) ? supplied : newId(entries)
   if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null
-  if (!/^MD-[A-Z2-9]{6}$/.test(id)) return null
   return {
     id,
     prizeId: String(body.prizeId || ""),
@@ -102,6 +142,10 @@ function clean(body) {
   }
 }
 
+export function buildClaim(body, entries = []) {
+  return clean(body, entries)
+}
+
 export async function handle(req, res) {
   const pathname = (req.url || "/").split("?")[0]
   const id = decodeURIComponent(pathname.replace(/^\/+|\/+$/g, ""))
@@ -119,20 +163,22 @@ export async function handle(req, res) {
     } catch {
       return send(res, 400, { error: "Invalid entry." })
     }
-    const record = clean(body)
+    const record = clean(body, [])
     if (!record) return send(res, 400, { error: "Invalid entry." })
     let saved
     try {
       saved = await updateEntries((entries) => {
-        const existing = entries.find((item) => item.email === record.email)
-        if (existing) return { created: false, record: existing }
+        const sameEmail = entries.some((item) => item.email === record.email)
         const ref = String(body.referredBy || "").trim()
-        if (ref && ref !== record.id) {
+        if (!sameEmail && ref && ref !== record.id) {
           const inviter = entries.find((item) => item.id === ref)
           if (inviter && inviter.email !== record.email) {
             record.referredBy = ref
             inviter.bonusEntries = (Number(inviter.bonusEntries) || 0) + 1
           }
+        }
+        if (entries.some((item) => item.id === record.id)) {
+          record.id = newId(entries)
         }
         entries.push(record)
         return { created: true, record }
