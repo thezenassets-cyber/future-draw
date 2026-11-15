@@ -715,6 +715,8 @@ section { scroll-margin-top: var(--header); }
 
 .admin-desk { margin-top: 64px; max-width: 880px; }
 
+.admin-desk .admin-panel { max-width: none; }
+
 .admin-desk h2 { margin-top: 12px; }
 
 .mail-state {
@@ -724,15 +726,42 @@ section { scroll-margin-top: var(--header); }
   border-left: 2px solid var(--accent);
 }
 
-.desk-tools { margin-top: 24px; }
+.desk-tools {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: end;
+  margin-top: 28px;
+}
 
-.claim-list { display: grid; gap: 16px; margin-top: 24px; }
+.desk-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.desk-count { margin-top: 8px; }
+
+.desk-note {
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: var(--bg-alt);
+  border-left: 2px solid var(--accent);
+}
+
+.desk-actions { flex-wrap: wrap; }
+
+.desk-actions .btn { width: 100%; }
+
+.claim-list { display: grid; gap: 16px; margin-top: 16px; }
 
 .claim-card {
-  padding: 24px;
+  padding: 20px;
   background: var(--bg);
   border: 1px solid var(--line);
+  min-width: 0;
 }
+
+.claim-card.is-fresh { border: 2px solid var(--accent); }
 
 .claim-code {
   font-family: var(--font-display);
@@ -772,8 +801,8 @@ section { scroll-margin-top: var(--header); }
 
 .claim-facts {
   display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 8px 16px;
+  grid-template-columns: 1fr;
+  gap: 4px 16px;
   margin-top: 16px;
 }
 
@@ -795,8 +824,22 @@ section { scroll-margin-top: var(--header); }
 
 .btn:disabled { opacity: 0.5; cursor: default; }
 
+@media (min-width: 700px) {
+  .desk-fields { grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .desk-tools { grid-template-columns: minmax(0, 1fr) auto; }
+  .desk-actions .btn { width: auto; }
+  .claim-facts { grid-template-columns: 140px minmax(0, 1fr); }
+  .claim-card { padding: 24px; }
+}
+
 @media (max-width: 720px) {
   .claim-grid { grid-template-columns: 1fr; }
+  .admin-desk { margin-top: 40px; }
+}
+
+.admin-desk input,
+.admin-desk select {
+  font-size: 16px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -27,16 +27,8 @@ function queueLabel(claims) {
   return `${people}. ${waiting}.`
 }
 
-function rank(claim) {
-  if (claim.status === "selected" && !claim.letterSentAt) return 0
-  if (claim.status === "review") return 1
-  if (claim.status === "received") return 2
-  if (claim.status === "selected") return 3
-  return 4
-}
-
 function ordered(claims) {
-  return [...claims].sort((a, b) => rank(a) - rank(b) || String(b.createdAt).localeCompare(String(a.createdAt)))
+  return [...claims].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
 }
 
 function noticeLabel(value) {
@@ -114,11 +106,14 @@ export default function ClaimsDesk({ pass }) {
       </p>
       {mail ? <MailState mail={mail} /> : null}
       {error ? <p className="error">{error}</p> : null}
-      <p className="lede">
-        {claims.length === 0
-          ? "No claims yet. A finished entry appears here as soon as it is saved."
-          : queueLabel(claims)}
-      </p>
+      <AddClaim
+        pass={pass}
+        onDone={(body) => {
+          show(body)
+          setQuery("")
+        }}
+        onError={setError}
+      />
       <div className="desk-tools">
         <div className="field">
           <label htmlFor="claim-search">Find a claim</label>
@@ -134,15 +129,19 @@ export default function ClaimsDesk({ pass }) {
           Refresh
         </button>
       </div>
-      {claims.length === 0 ? (
-        <p className="lede">No claims yet. A finished entry appears here with its details.</p>
-      ) : (
+      <p className="lede desk-count">
+        {claims.length === 0
+          ? "No claims yet. A saved claim appears here, under the button."
+          : queueLabel(claims)}
+      </p>
+      {claims.length === 0 ? null : (
         <div className="claim-list">
           {ordered(claims).filter((claim) => matches(claim, query)).length === 0 ? (
-            <p className="lede">No claim matches that search.</p>
-          ) : ordered(claims).filter((claim) => matches(claim, query)).map((claim) => (
+            <p className="lede">No claim matches that search. Clear the search to see every claim.</p>
+          ) : ordered(claims).filter((claim) => matches(claim, query)).map((claim, index) => (
             <ClaimCard
               key={claim.id}
+              fresh={index === 0}
               claim={claim}
               pass={pass}
               onStanding={saveStanding}
@@ -151,19 +150,6 @@ export default function ClaimsDesk({ pass }) {
           ))}
         </div>
       )}
-      <AddClaim
-        pass={pass}
-        onDone={(body) => {
-          show(body)
-          setQuery("")
-          const id = body.added?.id
-          if (!id) return
-          requestAnimationFrame(() => {
-            document.getElementById(`claim-${id}`)?.scrollIntoView({ block: "center" })
-          })
-        }}
-        onError={setError}
-      />
     </section>
   )
 }
@@ -186,12 +172,14 @@ function AddClaim({ pass, onDone, onError }) {
   const [code, setCode] = useState("")
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState("")
+  const [problem, setProblem] = useState("")
   const prize = prizes.find((item) => item.id === prizeId) || prizes[0]
 
   async function submit(event) {
     event.preventDefault()
     setBusy(true)
     setNote("")
+    setProblem("")
     onError("")
     try {
       const response = await fetch("/api/admin/claims", {
@@ -214,11 +202,15 @@ function AddClaim({ pass, onDone, onError }) {
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) {
-        onError(body.error || "The claim could not be added.")
+        const message = body.error || "The claim could not be added."
+        setProblem(message)
+        onError(message)
         return
       }
       if (!body.added?.id || !(body.claims || []).some((item) => item.id === body.added.id)) {
-        onError("The claim did not appear on the desk. Try again.")
+        const message = "The claim did not appear on the desk. Try again."
+        setProblem(message)
+        onError(message)
         return
       }
       onDone(body)
@@ -227,8 +219,14 @@ function AddClaim({ pass, onDone, onError }) {
       setPhone("")
       setCountry("")
       setCode("")
-      setNote(`${body.added.id} is on the desk. It stays until you remove it.`)
+      setNote(`${body.added.id} · ${body.added.name} is on the desk.`)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.getElementById("claim-added")?.scrollIntoView({ block: "start" })
+        })
+      })
     } catch {
+      setProblem("The claim could not be added.")
       onError("The claim could not be added.")
     } finally {
       setBusy(false)
@@ -239,24 +237,22 @@ function AddClaim({ pass, onDone, onError }) {
     <form className="admin-panel" onSubmit={submit} noValidate>
       <p className="kicker">Add a claim</p>
       <p className="letter-hint">Put a missing person back, then select them and send the congratulations letter.</p>
-      <div className="admin-time">
+      <div className="desk-fields">
         <div className="field">
           <label htmlFor="add-name">Name</label>
-          <input id="add-name" value={name} onChange={(event) => setName(event.target.value)} />
+          <input id="add-name" value={name} autoComplete="name" onChange={(event) => setName(event.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="add-email">Email</label>
-          <input id="add-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <input id="add-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="add-phone">Phone</label>
-          <input id="add-phone" value={phone} onChange={(event) => setPhone(event.target.value)} />
+          <input id="add-phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
         </div>
-      </div>
-      <div className="admin-time">
         <div className="field">
           <label htmlFor="add-country">Country</label>
-          <input id="add-country" value={country} onChange={(event) => setCountry(event.target.value)} />
+          <input id="add-country" autoComplete="country-name" value={country} onChange={(event) => setCountry(event.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="add-prize">Prize</label>
@@ -271,8 +267,9 @@ function AddClaim({ pass, onDone, onError }) {
           <input id="add-code" value={code} placeholder="Leave blank to create one" onChange={(event) => setCode(event.target.value.toUpperCase())} />
         </div>
       </div>
-      {note ? <p className="lede">{note}</p> : null}
-      <button className="btn" type="submit" disabled={busy}>{busy ? "Adding…" : "Add the claim"}</button>
+      {problem ? <p className="error">{problem}</p> : null}
+      <button className="btn btn-block" type="submit" disabled={busy}>{busy ? "Adding…" : "Add the claim"}</button>
+      {note ? <p className="desk-note" id="claim-added">{note}</p> : null}
     </form>
   )
 }
@@ -294,7 +291,7 @@ function MailState({ mail }) {
   )
 }
 
-function ClaimCard({ claim, pass, onStanding, onDone }) {
+function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
   const [standing, setStanding] = useState(claim.status)
   const [delivery, setDelivery] = useState(claim.deliveryUrl || "")
   const [sendTo, setSendTo] = useState(claim.email)
@@ -352,11 +349,43 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
 
   async function sendLetter(event) {
     event.preventDefault()
-    const sent = await post(`/api/admin/claims/${claim.id}/letter`, {
-      deliveryUrl: delivery.trim(),
-      to: sendTo.trim(),
-    })
-    if (sent) setNote(`Congratulations letter sent to ${claim.email}.`)
+    const to = sendTo.trim()
+    const link = delivery.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      setError("Enter the email that should receive the letter.")
+      return
+    }
+    if (!link) {
+      setError("Paste the logistics link.")
+      return
+    }
+    setBusy(true)
+    setError("")
+    setNote("")
+    try {
+      if (claim.status !== "selected") await onStanding(claim.id, "selected")
+      const response = await fetch(`/api/admin/claims/${claim.id}/letter`, {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Pass": pass,
+        },
+        body: JSON.stringify({ deliveryUrl: link, to }),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setError(body.error || "The letter could not be sent.")
+        if (body.claims) onDone(body)
+        return
+      }
+      onDone(body)
+      setNote(`Letter sent to ${to}.`)
+    } catch (reason) {
+      setError(reason.message || "The letter could not be sent.")
+    } finally {
+      setBusy(false)
+    }
   }
 
   const selected = claim.status === "selected"
@@ -366,7 +395,7 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
     : "Direct entry"
 
   return (
-    <article className="claim-card" id={`claim-${claim.id}`}>
+    <article className={fresh ? "claim-card is-fresh" : "claim-card"} id={`claim-${claim.id}`}>
       <p className="claim-code">{claim.id}</p>
       <p className="claim-mail">{claim.email}</p>
       <p className="claim-cash">{formatCash(Number(claim.cash) || 0)}</p>
@@ -416,11 +445,11 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
         </select>
       </div>
       <form className="letter-panel" onSubmit={sendLetter} noValidate>
-        <p className="kicker">Letter</p>
+        <p className="kicker">Send the letter</p>
         <p className="letter-hint">
           {selected
-            ? "Paste the logistics link, then choose the inbox. The letter opens that page for delivery."
-            : "Set the standing to Selected. Then paste the logistics link and the email that should receive it."}
+            ? "The standing is Selected. Enter the inbox and the logistics link, then send."
+            : "Enter the inbox and the logistics link. Sending marks this claim Selected."}
         </p>
         <div className="field">
           <label htmlFor={`send-to-${claim.id}`}>Send the letter to</label>
@@ -448,8 +477,8 @@ function ClaimCard({ claim, pass, onStanding, onDone }) {
         {delivery.trim() ? <p className="claim-meta">The button opens the logistics page {delivery.trim()}</p> : null}
         {error ? <p className="error">{error}</p> : null}
         {note ? <p className="claim-meta">{note}</p> : null}
-        <div className="drawer-actions">
-          <button className="btn" type="submit" disabled={busy || !selected || !delivery.trim() || !sendTo.trim()}>
+        <div className="drawer-actions desk-actions">
+          <button className="btn" type="submit" disabled={busy}>
             {busy ? "Sending…" : "Send the letter"}
           </button>
           {claim.adminNotice !== "sent" ? (
