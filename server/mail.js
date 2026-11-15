@@ -417,6 +417,43 @@ export async function sendSelection(record, link, to = record.email) {
   await sendMail({ to, subject: message.subject, text: message.text, html: message.html })
 }
 
+export function customerNote(record, message, link = "") {
+  const safeName = escapeHtml(record.name || "there")
+  const blocks = String(message || "")
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => paragraph(escapeHtml(part).replaceAll("\n", "<br>")))
+  const subject = `A note from Future Draw · ${record.id}`
+  const text = [
+    `Hello ${record.name || "there"},`,
+    "",
+    String(message || "").trim(),
+    "",
+    link ? `Open this link: ${link}` : "",
+    "",
+    `Identification: ${record.id}`,
+    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required.",
+  ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n")
+  const html = frame({
+    kicker: "From the desk",
+    title: "A note for you",
+    intro: paragraph(`Hello ${safeName},`),
+    blocks,
+    action: link
+      ? paragraph(`${button(link, "Open the link")}<div style="padding-top:12px;font-size:14px;line-height:1.4;"><a class="fd-red" href="${escapeHtml(link)}" style="color:${red};">${escapeHtml(link)}</a></div>`)
+      : "",
+    note: paragraph(`Identification <strong class="fd-red" style="color:${red};">${escapeHtml(record.id)}</strong>`),
+  })
+  return { subject, text, html }
+}
+
+export async function sendCustomerNote(record, message, link, to = record.email) {
+  const note = customerNote(record, message, link)
+  await sendMail({ to, subject: note.subject, text: note.text, html: note.html })
+}
+
 function letter(to) {
   const subject = "Future Draw desk test"
   const text = [

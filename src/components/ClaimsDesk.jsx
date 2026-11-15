@@ -509,6 +509,130 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
         </div>
         {closed ? <p className="claim-meta">This claim is closed. Select it again before sending a letter.</p> : null}
       </form>
+      <CustomerNote claim={claim} pass={pass} onDone={onDone} />
     </article>
+  )
+}
+
+function CustomerNote({ claim, pass, onDone }) {
+  const [to, setTo] = useState(claim.email)
+  const [message, setMessage] = useState("")
+  const [includeLink, setIncludeLink] = useState(false)
+  const [link, setLink] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  const [sent, setSent] = useState("")
+
+  async function submit(event) {
+    event.preventDefault()
+    const inbox = to.trim()
+    if (message.trim().length < 2) {
+      setError("Write the message first.")
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inbox)) {
+      setError("Enter the email that should receive the message.")
+      return
+    }
+    if (includeLink && !link.trim()) {
+      setError("Paste the link, or turn the link off.")
+      return
+    }
+    setBusy(true)
+    setError("")
+    setSent("")
+    try {
+      const response = await fetch(`/api/admin/claims/${claim.id}/note`, {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Pass": pass,
+        },
+        body: JSON.stringify({
+          to: inbox,
+          message: message.trim(),
+          includeLink,
+          link: includeLink ? link.trim() : "",
+        }),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setError(body.error || "The message could not be sent.")
+        if (body.claims) onDone(body)
+        return
+      }
+      onDone(body)
+      setMessage("")
+      setLink("")
+      setIncludeLink(false)
+      setSent(includeLink ? `Message sent to ${inbox}, with the link.` : `Message sent to ${inbox}. No link was included.`)
+    } catch {
+      setError("The message could not be sent.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form className="letter-panel" onSubmit={submit} noValidate>
+      <p className="kicker">Write to the customer</p>
+      <p className="letter-hint">A plain note from the desk. Add a link only when you want one in the email.</p>
+      <div className="field">
+        <label htmlFor={`note-to-${claim.id}`}>Send the message to</label>
+        <input
+          id={`note-to-${claim.id}`}
+          type="email"
+          autoComplete="off"
+          value={to}
+          onChange={(event) => setTo(event.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor={`note-message-${claim.id}`}>Message</label>
+        <textarea
+          id={`note-message-${claim.id}`}
+          value={message}
+          maxLength={2000}
+          onChange={(event) => setMessage(event.target.value)}
+        />
+      </div>
+      <label className="check" htmlFor={`note-link-toggle-${claim.id}`}>
+        <input
+          id={`note-link-toggle-${claim.id}`}
+          type="checkbox"
+          checked={includeLink}
+          onChange={(event) => setIncludeLink(event.target.checked)}
+        />
+        <span>Add a link to this email</span>
+      </label>
+      {includeLink ? (
+        <div className="field">
+          <label htmlFor={`note-link-${claim.id}`}>Link</label>
+          <input
+            id={`note-link-${claim.id}`}
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            spellCheck="false"
+            placeholder="https://"
+            value={link}
+            onChange={(event) => setLink(event.target.value)}
+          />
+        </div>
+      ) : null}
+      {claim.noteSentAt ? (
+        <p className="claim-meta">
+          Message sent {formatWhen(claim.noteSentAt)} to {claim.noteSentTo || "the customer"}
+          {claim.noteLink ? ", with a link." : ". No link was included."}
+        </p>
+      ) : null}
+      {claim.noteError ? <p className="error">{claim.noteError}</p> : null}
+      {error ? <p className="error">{error}</p> : null}
+      {sent ? <p className="desk-note">{sent}</p> : null}
+      <button className="btn btn-block" type="submit" disabled={busy}>
+        {busy ? "Sending…" : "Send the message"}
+      </button>
+    </form>
   )
 }

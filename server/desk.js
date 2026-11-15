@@ -1,6 +1,6 @@
 import { writeDrawEnd } from "./clock.js"
 import { listEntries, updateEntries, buildClaim } from "./entries-api.js"
-import { deliveryLink, handleTestMail, mailStatus, notifyAdmin, sendSelection } from "./mail.js"
+import { deliveryLink, handleTestMail, mailStatus, notifyAdmin, sendCustomerNote, sendSelection } from "./mail.js"
 
 const standings = new Set(["received", "review", "selected", "closed"])
 
@@ -59,6 +59,10 @@ function present(entries, record) {
     letterSentAt: record.letterSentAt || "",
     letterSentTo: record.letterSentTo || "",
     letterError: record.letterError || "",
+    noteSentAt: record.noteSentAt || "",
+    noteSentTo: record.noteSentTo || "",
+    noteLink: record.noteLink || "",
+    noteError: record.noteError || "",
     adminNotice: record.adminNotice || "unconfigured",
   }
 }
@@ -183,6 +187,42 @@ export async function handleAdmin(req, res) {
       item.letterSentTo = to
       item.letterError = ""
       item.status = "selected"
+    })
+    return send(res, 200, claimsPayload())
+  }
+
+  if (parts.length === 3 && parts[2] === "note") {
+    const current = listEntries().find((item) => item.id === id)
+    if (!current) return send(res, 404, { error: "This claim is not on the desk. Refresh and try that person again." })
+    const message = String(body.message || "").trim()
+    if (message.length < 2) return send(res, 400, { error: "Write the message first." })
+    if (message.length > 2000) return send(res, 400, { error: "Keep the message under 2,000 characters." })
+    const to = String(body.to || current.email || "").trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return send(res, 400, { error: "Enter the email that should receive the message." })
+    }
+    const includeLink = Boolean(body.includeLink)
+    const link = includeLink ? deliveryLink(body.link) : ""
+    if (includeLink && !link) {
+      return send(res, 400, { error: "Paste the link, or turn the link off." })
+    }
+    try {
+      await sendCustomerNote(current, message, link, to)
+    } catch (error) {
+      const failure = error.message || "The message could not be sent."
+      await updateEntries((entries) => {
+        const item = entries.find((entry) => entry.id === id)
+        if (item) item.noteError = failure
+      })
+      return send(res, error.status || 502, { error: failure, ...claimsPayload() })
+    }
+    await updateEntries((entries) => {
+      const item = entries.find((entry) => entry.id === id)
+      if (!item) return
+      item.noteSentAt = new Date().toISOString()
+      item.noteSentTo = to
+      item.noteLink = link
+      item.noteError = ""
     })
     return send(res, 200, claimsPayload())
   }
