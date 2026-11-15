@@ -55,13 +55,9 @@ function frame({ kicker, title, intro, blocks, action, note }) {
       .fd-ink { color: ${ink} !important; }
       .fd-bar, .fd-btn, .fd-btn a { background-color: ${red} !important; background-image: linear-gradient(${red},${red}) !important; }
       .fd-btn, .fd-btn a { color: ${white} !important; }
-      u + .body .gmail-blend-screen { background: #000; mix-blend-mode: screen; }
-      u + .body .gmail-blend-difference { background: #000; mix-blend-mode: difference; }
     </style>
   </head>
-  <body class="body" bgcolor="${white}" style="margin:0;padding:0;${paper}color:${ink};">
-    <div class="gmail-blend-screen" style="${paper}">
-    <div class="gmail-blend-difference" style="${paper}">
+  <body bgcolor="${white}" style="margin:0;padding:0;${paper}color:${ink};">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
       <tr><td class="fd-bar" bgcolor="${red}" height="8" style="background-color:${red};background-image:linear-gradient(${red},${red});font-size:0;line-height:0;">&nbsp;</td></tr>
       <tr>
@@ -93,8 +89,6 @@ function frame({ kicker, title, intro, blocks, action, note }) {
       </tr>
       <tr><td class="fd-bar" bgcolor="${red}" height="8" style="background-color:${red};background-image:linear-gradient(${red},${red});font-size:0;line-height:0;">&nbsp;</td></tr>
     </table>
-    </div>
-    </div>
   </body>
 </html>`
 }
@@ -314,20 +308,42 @@ export async function notifyClaimant(record) {
   }
 }
 
+function formatWhen(iso) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date)
+}
+
 function claimNotice(record) {
-  const referred = record.referredBy || "None"
+  const referred = record.referredBy || "Direct entry"
+  const phone = record.phone || "None"
+  const country = record.country || "None"
+  const chances = chanceLabel(record)
+  const registered = formatWhen(record.createdAt) || "Just now"
+  const rows = [
+    ["Identification", record.id],
+    ["Name", record.name],
+    ["Email", record.email],
+    ["Phone", phone],
+    ["Country", country],
+    ["Prize", record.prizeName || "Prize"],
+    ["Amount", formatMoney(record.cash)],
+    ["Chances", chances],
+    ["Registered", registered],
+    ["Referred by", referred],
+    ["Brought in", "Nobody yet"],
+  ]
   const subject = `Future Draw claim ${record.id} registered`
   const text = [
     "A claim has been registered.",
     "",
-    `Identification: ${record.id}`,
-    `Email: ${record.email}`,
-    `Name: ${record.name}`,
-    `Phone: ${record.phone}`,
-    `Country: ${record.country}`,
-    `Prize: ${record.prizeName}`,
-    `Amount to claim: ${formatMoney(record.cash)}`,
-    `Referred by: ${referred}`,
+    ...rows.map(([label, value]) => `${label}: ${value}`),
     "",
     "This registration is not a selection.",
     `Review it at ${desk}.`,
@@ -337,12 +353,9 @@ function claimNotice(record) {
   const html = frame({
     kicker: "Desk notice",
     title: "New claim",
-    intro: paragraph(`Identification <strong style="color:${red};">${escapeHtml(record.id)}</strong>`),
+    intro: paragraph("A claim has been registered. This registration is not a selection."),
     blocks: [
-      amountBlock(record.cash, record.prizeName || "Prize"),
-      paragraph(`${escapeHtml(record.name)} · ${escapeHtml(record.email)} · ${escapeHtml(record.country)}`),
-      paragraph(`Phone ${escapeHtml(record.phone || "None")} · Referred by ${escapeHtml(referred)}`),
-      paragraph("This registration is not a selection."),
+      detailBlock(rows),
     ],
     action: paragraph(button(desk, "Open the desk")),
   })
