@@ -22,7 +22,8 @@ export default function Footer() {
         <p className="legal">
           {site.brand} is a customer promotion. It is not affiliated with Tesla, Inc.
           Photographs are promotional images of the prize vehicles and Optimus Gen 3. No fee is
-          required to enter. An entry confirmation is not a notice that you have won.
+          required to enter. The entry email confirms the identification code. The congratulations
+          letter follows about one minute later, unless the desk holds the claim.
         </p>
       </div>
     </footer>

@@ -6,10 +6,10 @@ export default function Rules() {
   const rules = [
     ["Eligibility", "Customers aged 18 or older. One entry per person."],
     ["Fee", "No purchase and no payment to claim an entry."],
-    ["Draw", `The draw is on ${when.date} at ${when.time}. Odds depend on the number of entries.`],
+    ["Draw", `The published date is ${when.date} at ${when.time}. The congratulations letter is emailed about one minute after a claim, unless the desk holds that claim.`],
     ["Notice", "The desk emails the customer about one minute after the claim. Keep the identification code. The claim stays until the desk removes it."],
     ["Invite", "A finished invite adds one extra entry for the person who shared the link. The friend is entered on their own. An invite is not a win."],
-    ["Payment", "Cash is paid to the verified winner after the draw."],
+    ["Payment", "Cash is paid with the selected claim. No fee is required."],
     ["Vehicles", `${site.brand} is not affiliated with Tesla, Inc. Cars are prizes in this promotion.`],
     ["Images", "Photographs are promotional images of the prize vehicles and Optimus Gen 3."],
   ]
@@ -21,8 +21,8 @@ export default function Rules() {
           <p className="kicker">Rules</p>
           <h2>Plain terms for the draw.</h2>
           <p className="lede">
-            Claiming a prize records your entry. It does not mean you have won.
-            One winner is drawn for each prize on the published date.
+            A claim is registered at once. About one minute later the desk emails the
+            congratulations letter, unless that claim is held. The claim stays until the desk removes it.
           </p>
         </div>
         <dl className="rules-list">
