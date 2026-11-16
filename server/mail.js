@@ -214,6 +214,30 @@ function transport() {
   })
 }
 
+export function deliveryReceipt(info, to) {
+  const target = String(to || "").trim().toLowerCase()
+  const listed = (value) => [].concat(value || []).map((item) => String(item).toLowerCase())
+  const accepted = listed(info?.accepted)
+  const rejected = listed(info?.rejected)
+  const pending = listed(info?.pending)
+  const response = String(info?.response || "").trim()
+  const named = accepted.some((item) => item.includes(target))
+  const blocked = rejected.some((item) => item.includes(target)) || pending.some((item) => item.includes(target))
+  if (!target || !named || blocked || /^[45]/.test(response)) {
+    const error = new Error("The mail server did not accept that inbox.")
+    error.status = 502
+    throw error
+  }
+  return {
+    messageId: String(info?.messageId || ""),
+    response: response.slice(0, 180),
+  }
+}
+
+function retryable(error) {
+  return ["ECONNECTION", "ETIMEDOUT", "ESOCKET", "ECONNRESET", "EAI_AGAIN"].includes(String(error?.code || ""))
+}
+
 export async function sendMail({ to, subject, text, html }) {
   if (!configured()) {
     const error = new Error("Brevo is not configured on this server.")
@@ -230,17 +254,22 @@ export async function sendMail({ to, subject, text, html }) {
     html,
     headers: {
       "X-Mailin-Track": "0",
+      "X-Mailin-Track-Clicks": "0",
+      "X-Mailin-Track-Opens": "0",
     },
   }
   let last
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      return await transport().sendMail(message)
+      const info = await transport().sendMail(message)
+      return deliveryReceipt(info, to)
     } catch (error) {
       last = error
-      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 500))
+      if (error.status === 502 || !retryable(error) || attempt === 3) break
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500))
     }
   }
+  if (last?.status) throw last
   const wrapped = new Error(last?.message || "The letter could not be sent.")
   wrapped.status = 502
   throw wrapped
@@ -256,6 +285,7 @@ export function mailStatus() {
     from: process.env.MAIL_FROM || "",
     adminTo: adminInbox(),
     letter: "congrats-prize",
+    delivery: "recipient-accepted",
   }
 }
 
@@ -423,7 +453,7 @@ export function selectionLetter(record, link, options = {}) {
   const name = record.name || "there"
   const subject = `Congratulations · ${car} · ${record.id}`
   const text = [
-    options.sample ? "Desk sample. This is not a selection." : "",
+    options.sample ? `Desk sample${options.reference ? ` ${options.reference}` : ""}. This is not a selection.` : "",
     `Hello ${name},`,
     "",
     "Congratulations. The Future Draw desk has selected your claim.",
@@ -448,7 +478,7 @@ export function selectionLetter(record, link, options = {}) {
   const html = frame({
     kicker: "Selection",
     title: "Congratulations",
-    intro: paragraph(`${options.sample ? "Desk sample. This is not a selection. " : ""}Hello ${escapeHtml(name)}. Congratulations. The Future Draw desk has selected your claim.`),
+    intro: paragraph(`${options.sample ? `Desk sample${options.reference ? ` ${escapeHtml(options.reference)}` : ""}. This is not a selection. ` : ""}Hello ${escapeHtml(name)}. Congratulations. The Future Draw desk has selected your claim.`),
     blocks: [
       detailBlock([
         ["Selected car", car],
@@ -526,7 +556,7 @@ function letter(to) {
     email: to,
     prizeName: "Roadster",
     cash: 500000,
-  }, site, { sample: true })
+  }, site, { sample: true, reference: new Date().toISOString().slice(0, 16) })
 }
 
 export async function handleTestMail(req, res) {
@@ -544,7 +574,7 @@ export async function handleTestMail(req, res) {
   const message = letter(to)
   try {
     const sent = await sendMail({ to, subject: message.subject, text: message.text, html: message.html })
-    return send(res, 200, { sent: true, id: sent.messageId || "", subject: message.subject })
+    return send(res, 200, { sent: true, id: sent.messageId || "", subject: message.subject, response: sent.response || "" })
   } catch (error) {
     const status = error.status || 502
     return send(res, status, { error: publicMailError(error) })

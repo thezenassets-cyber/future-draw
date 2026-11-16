@@ -172,7 +172,7 @@ export default function Admin() {
         setTestError(body.error || "The letter could not be sent.")
         return
       }
-      setTestNote(`Test letter sent to ${testTo.trim()}.`)
+      setTestNote(`Accepted for ${testTo.trim()}. Subject: ${body.subject || "the sample letter"}. Check the inbox and spam.`)
     } catch {
       setTestError("The letter could not be sent.")
     }
@@ -276,6 +276,7 @@ export default function Admin() {
         {unlocked ? (
           <form className="admin-panel" id="test-letter" onSubmit={sendTest} noValidate>
             <p className="kicker">Desk letter</p>
+            <p className="letter-hint">Sends the sample congratulations letter. It is reported only after Brevo accepts that inbox.</p>
             <div className="field">
               <label htmlFor="test-mail">Send a test letter</label>
               <input
