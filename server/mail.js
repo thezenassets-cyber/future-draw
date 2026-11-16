@@ -97,6 +97,26 @@ function paragraph(html) {
   return `<tr><td class="fd-ink" bgcolor="${white}" style="padding-top:16px;font-family:${ui};font-size:16px;line-height:1.5;color:${ink};${paper}">${html}</td></tr>`
 }
 
+function deliverySteps(codeHtml) {
+  const steps = [
+    "Open the delivery button. It takes you to the delivery company.",
+    `Give their customer care your identification code, ${codeHtml}.`,
+    "Give them the address where you want the package sent.",
+    "Stay in touch with the delivery company, and track the package, until you receive it.",
+  ]
+  const rows = steps.map((step, index) => `<tr>
+      <td class="fd-red" valign="top" bgcolor="${white}" width="36" style="padding:16px 12px 0 0;font-family:${display};font-size:22px;font-weight:700;line-height:1.2;color:${red};${paper}">${index + 1}</td>
+      <td class="fd-ink" valign="top" bgcolor="${white}" style="padding:16px 0 0;border-top:2px solid ${red};font-family:${ui};font-size:16px;line-height:1.5;color:${ink};${paper}">${step}</td>
+    </tr>`).join("")
+  return `<tr>
+    <td bgcolor="${white}" style="padding-top:8px;${paper}">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
+        ${rows}
+      </table>
+    </td>
+  </tr>`
+}
+
 function amountBlock(amount, caption) {
   return `<tr>
     <td bgcolor="${white}" style="padding-top:28px;${paper}">
@@ -235,6 +255,7 @@ export function mailStatus() {
     configured: configured(),
     from: process.env.MAIL_FROM || "",
     adminTo: adminInbox(),
+    letter: "delivery-steps",
   }
 }
 
@@ -396,44 +417,41 @@ function claimNotice(record) {
 
 export function selectionLetter(record, link) {
   const safeLink = escapeHtml(link)
-  const subject = `Future Draw selection ${record.id}`
+  const code = escapeHtml(record.id)
+  const subject = `Future Draw delivery ${record.id}`
   const text = [
-    "Congratulations.",
+    `Hello ${record.name || "there"},`,
     "",
     "The Future Draw desk has selected your claim.",
     "",
-    `Identification: ${record.id}`,
-    `Email: ${record.email}`,
-    `Name: ${record.name}`,
-    `Prize: ${record.prizeName}`,
+    `Identification code: ${record.id}`,
+    `Prize: ${record.prizeName || "Prize"}`,
     `Amount to claim: ${formatMoney(record.cash)}`,
+    "",
+    "Please follow these steps with the delivery company.",
+    "",
+    "1. Open the delivery link. It takes you to the delivery company.",
+    `2. Give their customer care your identification code, ${record.id}.`,
+    "3. Give them the address where you want the package sent.",
+    "4. Stay in touch with the delivery company, and track the package, until you receive it.",
     "",
     `Delivery: ${link}`,
     "",
-    "Open that link. It goes straight to the delivery company.",
+    "These are the only steps. No fee is required.",
     "",
-    `Give their customer care your code ${record.id} and the address where you will receive the package.`,
-    "Stay in touch with them, and track the package, until it arrives.",
-    "That is all you need to do.",
-    "",
-    `Phone: ${record.phone || "None"}`,
-    `Country: ${record.country || "None"}`,
-    "",
-    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required. This letter is from the Future Draw desk.",
+    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
   ].join("\n")
   const html = frame({
-    kicker: "Selection",
-    title: "Congratulations",
-    intro: paragraph("The Future Draw desk has selected your claim."),
+    kicker: "Delivery",
+    title: "Your package",
+    intro: paragraph(`Hello ${escapeHtml(record.name || "there")}, the Future Draw desk has selected your claim. Please follow these steps with the delivery company.`),
     blocks: [
+      paragraph(`Identification code <strong class="fd-red" style="color:${red};">${code}</strong>`),
       amountBlock(record.cash, record.prizeName || "Prize"),
-      paragraph(`Identification <strong class="fd-red" style="color:${red};">${escapeHtml(record.id)}</strong>`),
-      paragraph(`${escapeHtml(record.name)} · ${escapeHtml(record.email)} · ${escapeHtml(record.phone || "None")} · ${escapeHtml(record.country || "None")}`),
-      paragraph(`<span class="fd-red" style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};">Delivery</span>`),
-      paragraph("Open the button. It goes straight to the delivery company."),
+      deliverySteps(`<strong class="fd-red" style="color:${red};">${code}</strong>`),
     ],
     action: paragraph(`${button(link, "Open delivery")}<div style="padding-top:12px;font-size:14px;line-height:1.4;"><a class="fd-red" href="${safeLink}" style="color:${red};">${safeLink}</a></div>`),
-    note: paragraph(`Give their customer care your code <strong class="fd-red" style="color:${red};">${escapeHtml(record.id)}</strong> and the address where you will receive the package. Stay in touch with them, and track the package, until it arrives. That is all you need to do.`),
+    note: paragraph("These are the only steps. No fee is required."),
   })
   return { subject, text, html }
 }
@@ -494,26 +512,33 @@ export async function sendCustomerNote(record, message, link, to = record.email)
 }
 
 function letter(to) {
-  const subject = "Future Draw desk test"
+  const subject = "Future Draw delivery instructions"
   const text = [
-    "This is a test letter from the Future Draw desk.",
+    "Sample for review. This is not a selection.",
     "",
-    `The draw is at ${site}.`,
-    "An entry confirmation is not a notice that you have won.",
-    "A finished invite adds one extra chance for the person who shared the link. The family member is entered on their own.",
+    `This is the letter a selected customer receives. It was sent to ${to} so the wording can be checked.`,
+    "",
+    "Please follow these steps with the delivery company.",
+    "",
+    "1. Open the delivery link. It takes you to the delivery company.",
+    "2. Give their customer care your identification code.",
+    "3. Give them the address where you want the package sent.",
+    "4. Stay in touch with the delivery company, and track the package, until you receive it.",
+    "",
+    "These are the only steps. No fee is required.",
     "",
     "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
-    "No fee is required to enter.",
   ].join("\n")
   const html = frame({
-    kicker: "Desk test",
-    title: "Mail check",
-    intro: paragraph(`This letter confirms that mail from the desk can reach ${escapeHtml(to)}.`),
+    kicker: "Sample",
+    title: "Your package",
+    intro: paragraph(`Sample for review. This is not a selection. This is the letter a selected customer receives, sent to ${escapeHtml(to)} so the wording can be checked.`),
     blocks: [
-      paragraph(`The draw is at <a href="${site}" style="color:${red};">${site}</a>. An entry confirmation is not a notice that you have won.`),
-      paragraph("A finished invite adds one extra chance for the person who shared the link. The family member is entered on their own."),
+      paragraph(`Identification code <strong class="fd-red" style="color:${red};">the code on the customer's claim</strong>`),
+      deliverySteps("the code on the customer's claim"),
     ],
-    action: paragraph(button(site, "Open Future Draw")),
+    action: paragraph(`${button(site, "Open Future Draw")}<div style="padding-top:12px;font-size:14px;line-height:1.4;">In the customer's letter, this button opens the delivery company.</div>`),
+    note: paragraph("These are the only steps. No fee is required."),
   })
   return { subject, text, html }
 }
@@ -533,7 +558,7 @@ export async function handleTestMail(req, res) {
   const message = letter(to)
   try {
     const sent = await sendMail({ to, subject: message.subject, text: message.text, html: message.html })
-    return send(res, 200, { sent: true, id: sent.messageId || "" })
+    return send(res, 200, { sent: true, id: sent.messageId || "", subject: message.subject })
   } catch (error) {
     const status = error.status || 502
     return send(res, status, { error: publicMailError(error) })
