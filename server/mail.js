@@ -255,7 +255,7 @@ export function mailStatus() {
     configured: configured(),
     from: process.env.MAIL_FROM || "",
     adminTo: adminInbox(),
-    letter: "delivery-steps",
+    letter: "congrats-prize",
   }
 }
 
@@ -415,20 +415,24 @@ function claimNotice(record) {
   return { subject, text, html }
 }
 
-export function selectionLetter(record, link) {
+export function selectionLetter(record, link, options = {}) {
   const safeLink = escapeHtml(link)
   const code = escapeHtml(record.id)
-  const subject = `Future Draw delivery ${record.id}`
+  const car = record.prizeName || "Prize"
+  const cash = formatMoney(record.cash)
+  const name = record.name || "there"
+  const subject = `Congratulations · ${car} · ${record.id}`
   const text = [
-    `Hello ${record.name || "there"},`,
+    options.sample ? "Desk sample. This is not a selection." : "",
+    `Hello ${name},`,
     "",
-    "The Future Draw desk has selected your claim.",
+    "Congratulations. The Future Draw desk has selected your claim.",
     "",
+    `Selected car: ${car}`,
+    `Cash prize: ${cash}`,
     `Identification code: ${record.id}`,
-    `Prize: ${record.prizeName || "Prize"}`,
-    `Amount to claim: ${formatMoney(record.cash)}`,
     "",
-    "Please follow these steps with the delivery company.",
+    "Your package",
     "",
     "1. Open the delivery link. It takes you to the delivery company.",
     `2. Give their customer care your identification code, ${record.id}.`,
@@ -440,14 +444,18 @@ export function selectionLetter(record, link) {
     "These are the only steps. No fee is required.",
     "",
     "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
-  ].join("\n")
+  ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n")
   const html = frame({
-    kicker: "Delivery",
-    title: "Your package",
-    intro: paragraph(`Hello ${escapeHtml(record.name || "there")}, the Future Draw desk has selected your claim. Please follow these steps with the delivery company.`),
+    kicker: "Selection",
+    title: "Congratulations",
+    intro: paragraph(`${options.sample ? "Desk sample. This is not a selection. " : ""}Hello ${escapeHtml(name)}. Congratulations. The Future Draw desk has selected your claim.`),
     blocks: [
-      paragraph(`Identification code <strong class="fd-red" style="color:${red};">${code}</strong>`),
-      amountBlock(record.cash, record.prizeName || "Prize"),
+      detailBlock([
+        ["Selected car", car],
+        ["Cash prize", cash],
+        ["Identification code", record.id],
+      ]),
+      paragraph(`<span class="fd-red" style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};">Your package</span>`),
       deliverySteps(`<strong class="fd-red" style="color:${red};">${code}</strong>`),
     ],
     action: paragraph(`${button(link, "Open delivery")}<div style="padding-top:12px;font-size:14px;line-height:1.4;"><a class="fd-red" href="${safeLink}" style="color:${red};">${safeLink}</a></div>`),
@@ -512,35 +520,13 @@ export async function sendCustomerNote(record, message, link, to = record.email)
 }
 
 function letter(to) {
-  const subject = "Future Draw delivery instructions"
-  const text = [
-    "Sample for review. This is not a selection.",
-    "",
-    `This is the letter a selected customer receives. It was sent to ${to} so the wording can be checked.`,
-    "",
-    "Please follow these steps with the delivery company.",
-    "",
-    "1. Open the delivery link. It takes you to the delivery company.",
-    "2. Give their customer care your identification code.",
-    "3. Give them the address where you want the package sent.",
-    "4. Stay in touch with the delivery company, and track the package, until you receive it.",
-    "",
-    "These are the only steps. No fee is required.",
-    "",
-    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
-  ].join("\n")
-  const html = frame({
-    kicker: "Sample",
-    title: "Your package",
-    intro: paragraph(`Sample for review. This is not a selection. This is the letter a selected customer receives, sent to ${escapeHtml(to)} so the wording can be checked.`),
-    blocks: [
-      paragraph(`Identification code <strong class="fd-red" style="color:${red};">the code on the customer's claim</strong>`),
-      deliverySteps("the code on the customer's claim"),
-    ],
-    action: paragraph(`${button(site, "Open Future Draw")}<div style="padding-top:12px;font-size:14px;line-height:1.4;">In the customer's letter, this button opens the delivery company.</div>`),
-    note: paragraph("These are the only steps. No fee is required."),
-  })
-  return { subject, text, html }
+  return selectionLetter({
+    id: "MD-SAMPLE",
+    name: "there",
+    email: to,
+    prizeName: "Roadster",
+    cash: 500000,
+  }, site, { sample: true })
 }
 
 export async function handleTestMail(req, res) {

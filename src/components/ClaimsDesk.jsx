@@ -553,7 +553,7 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
         </div>
         {delivery.trim() ? (
           <p className="claim-meta">
-            The button opens {delivery.trim()}. The letter tells them to give that company this code and the address they choose, then track the package until it arrives.
+            The button opens {delivery.trim()}. The letter congratulates them, names the selected car and the cash prize, then explains the package.
           </p>
         ) : null}
         {error ? <p className="error">{error}</p> : null}
