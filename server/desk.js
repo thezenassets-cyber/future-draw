@@ -1,6 +1,7 @@
 import { writeDrawEnd } from "./clock.js"
 import { listEntries, updateEntries, buildClaim } from "./entries-api.js"
-import { deliveryLink, handleTestMail, mailStatus, notifyAdmin, sendCustomerNote, sendSelection } from "./mail.js"
+import { deliveryLink, handleTestMail, mailStatus, notifyAdmin, notifyClaimant, publicMailError, sendCustomerNote, sendSelection } from "./mail.js"
+import { storageReport } from "./store.js"
 
 const standings = new Set(["received", "review", "selected", "closed"])
 
@@ -59,11 +60,17 @@ function present(entries, record) {
     letterSentAt: record.letterSentAt || "",
     letterSentTo: record.letterSentTo || "",
     letterError: record.letterError || "",
+    entryMail: record.entryMail || "unsent",
+    entryMailAt: record.entryMailAt || "",
+    entryMailTo: record.entryMailTo || "",
+    entryMailError: record.entryMailError || "",
+    adminNotice: record.adminNotice || "unsent",
+    adminNoticeAt: record.adminNoticeAt || "",
+    adminNoticeError: record.adminNoticeError || "",
     noteSentAt: record.noteSentAt || "",
     noteSentTo: record.noteSentTo || "",
     noteLink: record.noteLink || "",
     noteError: record.noteError || "",
-    adminNotice: record.adminNotice || "unconfigured",
   }
 }
 
@@ -72,7 +79,12 @@ function claimsPayload() {
   const claims = entries
     .map((record) => present(entries, record))
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
-  return { mail: mailStatus(), claims }
+  const storage = storageReport()
+  return {
+    mail: mailStatus(),
+    storage: { durable: storage.durable, verified: storage.verified, error: storage.error },
+    claims,
+  }
 }
 
 export async function handleAdmin(req, res) {
@@ -143,15 +155,35 @@ export async function handleAdmin(req, res) {
     const record = listEntries().find((item) => item.id === id)
     if (!record) return send(res, 404, { error: "Not found" })
     const notice = await notifyAdmin(record)
+    const at = new Date().toISOString()
     await updateEntries((entries) => {
       const item = entries.find((entry) => entry.id === id)
-      if (item) item.adminNotice = notice
+      if (!item) return
+      item.adminNotice = notice.status
+      item.adminNoticeAt = at
+      item.adminNoticeError = notice.error
     })
-    if (notice !== "sent") {
-      const error = notice === "unconfigured"
-        ? "Brevo is not configured on this server."
-        : "The desk notice could not be sent."
-      return send(res, notice === "unconfigured" ? 503 : 502, { error, ...claimsPayload() })
+    if (notice.status !== "sent") {
+      return send(res, notice.status === "unconfigured" ? 503 : 502, { error: notice.error, ...claimsPayload() })
+    }
+    return send(res, 200, claimsPayload())
+  }
+
+  if (parts.length === 3 && parts[2] === "entry-mail") {
+    const record = listEntries().find((item) => item.id === id)
+    if (!record) return send(res, 404, { error: "This claim is not on the desk. Refresh and try that person again." })
+    const result = await notifyClaimant(record)
+    const at = new Date().toISOString()
+    await updateEntries((entries) => {
+      const item = entries.find((entry) => entry.id === id)
+      if (!item) return
+      item.entryMail = result.status
+      item.entryMailAt = at
+      item.entryMailTo = record.email
+      item.entryMailError = result.error
+    })
+    if (result.status !== "sent") {
+      return send(res, result.status === "unconfigured" ? 503 : 502, { error: result.error, ...claimsPayload() })
     }
     return send(res, 200, claimsPayload())
   }
@@ -171,10 +203,13 @@ export async function handleAdmin(req, res) {
     try {
       await sendSelection(current, link, to)
     } catch (error) {
-      const message = error.message || "The letter could not be sent."
+      const message = publicMailError(error)
       await updateEntries((entries) => {
         const item = entries.find((entry) => entry.id === id)
-        if (item) item.letterError = message
+        if (!item) return
+        item.letterError = message
+        item.letterSentAt = ""
+        item.letterSentTo = to
       })
       const status = error.status || 502
       return send(res, status, { error: message, ...claimsPayload() })
@@ -209,10 +244,13 @@ export async function handleAdmin(req, res) {
     try {
       await sendCustomerNote(current, message, link, to)
     } catch (error) {
-      const failure = error.message || "The message could not be sent."
+      const failure = publicMailError(error)
       await updateEntries((entries) => {
         const item = entries.find((entry) => entry.id === id)
-        if (item) item.noteError = failure
+        if (!item) return
+        item.noteError = failure
+        item.noteSentAt = ""
+        item.noteSentTo = to
       })
       return send(res, error.status || 502, { error: failure, ...claimsPayload() })
     }
@@ -252,9 +290,12 @@ export async function handleAdmin(req, res) {
 
 export function adminApi() {
   const middleware = (req, res, next) => {
-    handleAdmin(req, res).catch(() => {
-      if (!res.headersSent) send(res, 500, { error: "The desk could not complete that step." })
-      else next()
+    handleAdmin(req, res).catch((error) => {
+      if (!res.headersSent) {
+        send(res, error.status || 500, {
+          error: error.status ? error.message : "The desk could not complete that step.",
+        })
+      } else next()
     })
   }
   return {

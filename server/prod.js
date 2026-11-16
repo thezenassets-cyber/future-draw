@@ -3,6 +3,7 @@ import http from "node:http"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { readDrawEnd } from "./clock.js"
+import { storageReport } from "./store.js"
 import { handleAdmin } from "./desk.js"
 import { handle } from "./entries-api.js"
 
@@ -51,9 +52,11 @@ function serveSite(req, res) {
 const server = http.createServer((req, res) => {
   const url = req.url || "/"
   if (url === "/health" || url.startsWith("/health?")) {
-    res.statusCode = 200
+    const storage = storageReport()
+    res.statusCode = storage.durable ? 200 : 503
     res.setHeader("Content-Type", "text/plain; charset=utf-8")
-    res.end("ok")
+    res.setHeader("Cache-Control", "no-store")
+    res.end(storage.durable ? "ok" : storage.error)
     return
   }
   if (url === "/api/draw" || url.startsWith("/api/draw?")) {
@@ -70,22 +73,26 @@ const server = http.createServer((req, res) => {
   }
   if (url === "/api/admin" || url.startsWith("/api/admin/") || url.startsWith("/api/admin?")) {
     req.url = url.slice("/api/admin".length) || "/"
-    handleAdmin(req, res).catch(() => {
+    handleAdmin(req, res).catch((error) => {
       if (!res.headersSent) {
-        res.statusCode = 500
+        res.statusCode = error.status || 500
         res.setHeader("Content-Type", "application/json")
-        res.end(JSON.stringify({ error: "The desk could not complete that step." }))
+        res.end(JSON.stringify({
+          error: error.status ? error.message : "The desk could not complete that step.",
+        }))
       }
     })
     return
   }
   if (url === "/api/entries" || url.startsWith("/api/entries/") || url.startsWith("/api/entries?")) {
     req.url = url.slice("/api/entries".length) || "/"
-    handle(req, res).catch(() => {
+    handle(req, res).catch((error) => {
       if (!res.headersSent) {
-        res.statusCode = 500
+        res.statusCode = error.status || 500
         res.setHeader("Content-Type", "application/json")
-        res.end(JSON.stringify({ error: "Could not save the entry." }))
+        res.end(JSON.stringify({
+          error: error.status ? error.message : "Could not save the entry.",
+        }))
       }
     })
     return

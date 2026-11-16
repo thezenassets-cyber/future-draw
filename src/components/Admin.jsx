@@ -128,20 +128,22 @@ export default function Admin() {
       <InstallApp desk />
       <div className="wrap">
         <p className="kicker">Admin</p>
-        <h1 className="admin-title">Draw countdown</h1>
+        <h1 className="admin-title">{unlocked ? "Desk" : "Draw countdown"}</h1>
         {unlocked ? (
           <nav className="admin-nav" aria-label="Desk">
-            <a href="#clock">Clock</a>
             <a href="#claims">Claims</a>
-            <a href="#test-letter">Test letter</a>
+            <a href="#clock">Clock</a>
+            <a href="#test-letter">Mail</a>
           </nav>
         ) : null}
+        {unlocked ? <ClaimsDesk pass={pass} /> : null}
+        <section id="clock">
         <p className="lede">
           Live end: {when.date} at {when.time}. Set a duration or any date and time. The public
           countdown resets to that end immediately.
         </p>
         {clockNote ? <p className="lede">{clockNote}</p> : null}
-        <div className="clock admin-clock" id="clock" aria-label="Time until the draw">
+        <div className="clock admin-clock" aria-label="Time until the draw">
           {[
             ["Days", String(time.days).padStart(2, "0")],
             ["Hours", pad(time.hours)],
@@ -217,7 +219,7 @@ export default function Admin() {
           </form>
           </>
         ) : null}
-        {unlocked ? <ClaimsDesk pass={pass} /> : null}
+        </section>
         {unlocked ? (
           <form className="admin-panel" id="test-letter" onSubmit={sendTest} noValidate>
             <p className="kicker">Desk letter</p>

@@ -1,10 +1,14 @@
 import fs from "node:fs"
 import path from "node:path"
 import { notifyAdmin, notifyClaimant } from "./mail.js"
-import { storeFile } from "./store.js"
+import { storageReport, storeFile } from "./store.js"
 
 function file() {
   return storeFile("entries.json")
+}
+
+function journalPath() {
+  return storeFile("entries.jsonl")
 }
 
 function readFile(target) {
@@ -15,19 +19,40 @@ function readFile(target) {
   return parsed
 }
 
-function read() {
+function readListFile() {
   const target = file()
   const backup = `${target}.bak`
-  if (!fs.existsSync(target)) return []
+  if (!fs.existsSync(target)) return null
   try {
     return readFile(target)
   } catch (error) {
-    if (!fs.existsSync(backup)) throw error
-    return readFile(backup)
+    if (!fs.existsSync(backup)) return null
+    try {
+      return readFile(backup)
+    } catch {
+      return null
+    }
   }
 }
 
-function write(entries) {
+function materializeJournal() {
+  const target = journalPath()
+  if (!fs.existsSync(target)) return []
+  const state = new Map()
+  for (const line of fs.readFileSync(target, "utf8").split("\n")) {
+    if (!line.trim()) continue
+    try {
+      const event = JSON.parse(line)
+      if (event.op === "remove" && event.id) state.delete(event.id)
+      else if (event.op === "upsert" && event.record?.id) state.set(event.record.id, event.record)
+    } catch {
+      // A torn line is skipped. The next complete line still applies.
+    }
+  }
+  return [...state.values()]
+}
+
+function writeList(entries) {
   const target = file()
   const directory = path.dirname(target)
   fs.mkdirSync(directory, { recursive: true })
@@ -42,6 +67,38 @@ function write(entries) {
   fs.copyFileSync(target, `${target}.bak`)
 }
 
+function appendJournal(events) {
+  if (!events.length) return
+  const target = journalPath()
+  fs.mkdirSync(path.dirname(target), { recursive: true })
+  fs.appendFileSync(target, `${events.map((event) => JSON.stringify(event)).join("\n")}\n`)
+}
+
+function read() {
+  if (!storageReport().durable) return []
+  const fromJournal = materializeJournal()
+  const fromFile = readListFile()
+  if (!fromFile) {
+    if (fromJournal.length) writeList(fromJournal)
+    return fromJournal
+  }
+  const fileIds = new Set(fromFile.map((item) => item.id))
+  const missing = fromJournal.filter((item) => item?.id && !fileIds.has(item.id))
+  if (!missing.length) return fromFile
+  const restored = [...fromFile, ...missing]
+  writeList(restored)
+  return restored
+}
+
+function write(entries, removedIds = []) {
+  const at = new Date().toISOString()
+  appendJournal([
+    ...removedIds.map((id) => ({ op: "remove", id, at })),
+    ...entries.map((record) => ({ op: "upsert", record, at })),
+  ])
+  writeList(entries)
+}
+
 let chain = Promise.resolve()
 
 export function listEntries() {
@@ -54,10 +111,11 @@ export function updateEntries(mutator, options = {}) {
     const before = entries.map((item) => item.id)
     const result = await mutator(entries)
     const ids = new Set(entries.map((item) => item.id))
-    if (!options.allowShrink && before.some((id) => !ids.has(id))) {
+    const removed = before.filter((id) => !ids.has(id))
+    if (!options.allowShrink && removed.length) {
       throw new Error("Existing claims are kept until the desk removes one.")
     }
-    write(entries)
+    write(entries, removed)
     return result
   })
   chain = run.then(() => {}, () => {})
@@ -139,7 +197,7 @@ function clean(body, entries = []) {
     status: "received",
     deliveryUrl: "",
     letterSentAt: "",
-    adminNotice: "unconfigured",
+    adminNotice: "unsent",
   }
 }
 
@@ -184,20 +242,36 @@ export async function handle(req, res) {
         entries.push(record)
         return { created: true, record }
       })
-    } catch {
-      return send(res, 500, { error: "Could not save the entry." })
+    } catch (error) {
+      const status = error.status || 500
+      return send(res, status, { error: error.status ? error.message : "Could not save the entry." })
     }
     if (saved.created) {
-      await notifyClaimant(saved.record)
+      const claimant = await notifyClaimant(saved.record)
       const notice = await notifyAdmin(saved.record)
-      saved.record.adminNotice = notice
+      const at = new Date().toISOString()
+      saved.record.entryMail = claimant.status
+      saved.record.entryMailAt = at
+      saved.record.entryMailTo = saved.record.email
+      saved.record.entryMailError = claimant.error
+      saved.record.adminNotice = notice.status
+      saved.record.adminNoticeAt = at
+      saved.record.adminNoticeError = notice.error
       try {
         await updateEntries((entries) => {
           const item = entries.find((entry) => entry.id === saved.record.id)
-          if (item) item.adminNotice = notice
+          if (!item) return
+          item.entryMail = claimant.status
+          item.entryMailAt = at
+          item.entryMailTo = saved.record.email
+          item.entryMailError = claimant.error
+          item.adminNotice = notice.status
+          item.adminNoticeAt = at
+          item.adminNoticeError = notice.error
         })
       } catch {
         saved.record.adminNotice = "failed"
+        saved.record.entryMail = saved.record.entryMail === "sent" ? "sent" : "failed"
       }
     }
     return send(res, saved.created ? 201 : 200, publicEntry(saved.record))
@@ -208,9 +282,11 @@ export async function handle(req, res) {
 
 export function entriesApi() {
   const middleware = (req, res, next) => {
-    handle(req, res).catch(() => {
-      if (!res.headersSent) send(res, 500, { error: "Could not save the entry." })
-      else next()
+    handle(req, res).catch((error) => {
+      if (!res.headersSent) {
+        const status = error.status || 500
+        send(res, status, { error: error.status ? error.message : "Could not save the entry." })
+      } else next()
     })
   }
   return {

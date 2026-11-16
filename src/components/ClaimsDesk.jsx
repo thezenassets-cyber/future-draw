@@ -31,15 +31,42 @@ function ordered(claims) {
   return [...claims].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
 }
 
-function noticeLabel(value) {
-  if (value === "sent") return "Desk notice sent"
-  if (value === "failed") return "Desk notice failed"
-  if (value === "unconfigured") return "Desk notice waiting for Brevo"
-  return "Desk notice queued"
+function storageLine(storage) {
+  if (!storage) return ""
+  if (!storage.durable) {
+    return storage.error || "The claim disk is not mounted. A claim will not be saved until the disk is attached at /var/data."
+  }
+  if (storage.verified) return "Claims are stored on the persistent disk and stay until you remove one."
+  return "Claims stay on this desk until you remove one."
+}
+
+function mailResult(label, status, at, to, error) {
+  const when = at ? formatWhen(at) : ""
+  const who = to ? ` to ${to}` : ""
+  if (status === "sent") return `${label}: sent${when ? ` ${when}` : ""}${who}.`
+  if (status === "failed") return `${label}: failed${when ? ` ${when}` : ""}${who}. ${error || "The email could not be sent."}`
+  if (status === "unconfigured") return `${label}: not sent. Brevo is not configured on this server.`
+  return `${label}: not sent.`
+}
+
+function letterLine(claim) {
+  if (claim.letterError) return mailResult("Congratulations letter", "failed", "", claim.letterSentTo, claim.letterError)
+  if (claim.letterSentAt) return mailResult("Congratulations letter", "sent", claim.letterSentAt, claim.letterSentTo, "")
+  return mailResult("Congratulations letter", "unsent")
+}
+
+function noteLine(claim) {
+  if (claim.noteError) return mailResult("Message", "failed", "", claim.noteSentTo, claim.noteError)
+  if (claim.noteSentAt) {
+    const extra = claim.noteLink ? ", with a link" : ""
+    return `Message: sent ${formatWhen(claim.noteSentAt)} to ${claim.noteSentTo || "the customer"}${extra}.`
+  }
+  return "Message: not sent."
 }
 
 export default function ClaimsDesk({ pass }) {
   const [mail, setMail] = useState(null)
+  const [storage, setStorage] = useState(null)
   const [claims, setClaims] = useState([])
   const [error, setError] = useState("")
   const [query, setQuery] = useState("")
@@ -48,6 +75,7 @@ export default function ClaimsDesk({ pass }) {
   function show(body) {
     ticket.current += 1
     if (body.mail) setMail(body.mail)
+    if (body.storage) setStorage(body.storage)
     if (Array.isArray(body.claims)) setClaims(body.claims)
   }
 
@@ -65,6 +93,7 @@ export default function ClaimsDesk({ pass }) {
     }
     setError("")
     setMail(body.mail)
+    setStorage(body.storage || null)
     setClaims(body.claims || [])
   }
 
@@ -104,6 +133,9 @@ export default function ClaimsDesk({ pass }) {
       <p className="lede">
         Every claim stays here until you remove it. Add a missing person, set Selected, paste the logistics link, and send the letter to any email.
       </p>
+      {storageLine(storage) ? (
+        <p className={storage?.durable ? "mail-state" : "error"}>{storageLine(storage)}</p>
+      ) : null}
       {mail ? <MailState mail={mail} /> : null}
       {error ? <p className="error">{error}</p> : null}
       <AddClaim
@@ -278,7 +310,7 @@ function MailState({ mail }) {
   if (mail.configured) {
     return (
       <p className="mail-state">
-        Brevo is connected. New claims notify {mail.adminTo}. Letters send from {mail.from}.
+        Brevo is connected. Letters send from {mail.from}. A reply arrives at {mail.adminTo}, not inside this desk.
       </p>
     )
   }
@@ -425,11 +457,6 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
             : claim.brought.map((person) => `${person.id} · ${person.email}`).join("; ")}
         </dd>
       </dl>
-      <p className="claim-meta">{noticeLabel(claim.adminNotice)}</p>
-      {claim.letterSentAt ? (
-        <p className="claim-meta">Congratulations letter sent {formatWhen(claim.letterSentAt)}{claim.letterSentTo ? ` to ${claim.letterSentTo}` : ""}</p>
-      ) : null}
-      {claim.letterError ? <p className="error">{claim.letterError}</p> : null}
       <div className="field claim-standing">
         <label htmlFor={`standing-${claim.id}`}>Standing</label>
         <select
@@ -444,72 +471,92 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
           ))}
         </select>
       </div>
+      <ul className="mail-results">
+        <li>{mailResult("Entry email", claim.entryMail, claim.entryMailAt, claim.entryMailTo, claim.entryMailError)}</li>
+        <li>{mailResult("Desk notice", claim.adminNotice, claim.adminNoticeAt, "", claim.adminNoticeError)}</li>
+        <li>{letterLine(claim)}</li>
+        <li>{noteLine(claim)}</li>
+      </ul>
+      <div className="drawer-actions desk-actions">
+        <button
+          className="btn btn-ghost"
+          type="button"
+          disabled={busy}
+          onClick={() => post(`/api/admin/claims/${claim.id}/entry-mail`, {}).then((sent) => {
+            if (sent) setNote("Entry email sent.")
+          })}
+        >
+          Resend the entry email
+        </button>
+        <button
+          className="btn btn-ghost"
+          type="button"
+          disabled={busy}
+          onClick={() => post(`/api/admin/claims/${claim.id}/notify`, {}).then((sent) => {
+            if (sent) setNote("Desk notice sent.")
+          })}
+        >
+          Notify the desk
+        </button>
+      </div>
+      {note ? <p className="claim-meta">{note}</p> : null}
       <form className="letter-panel" onSubmit={sendLetter} noValidate>
-        <p className="kicker">Send the letter</p>
+        <p className="kicker">Congratulations letter</p>
         <p className="letter-hint">
           {selected
             ? "The standing is Selected. Enter the inbox and the logistics link, then send."
             : "Enter the inbox and the logistics link. Sending marks this claim Selected."}
         </p>
-        <div className="field">
-          <label htmlFor={`send-to-${claim.id}`}>Send the letter to</label>
-          <input
-            id={`send-to-${claim.id}`}
-            type="email"
-            autoComplete="off"
-            value={sendTo}
-            onChange={(event) => setSendTo(event.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor={`delivery-${claim.id}`}>Paste the logistics link</label>
-          <input
-            id={`delivery-${claim.id}`}
-            type="text"
-            inputMode="url"
-            autoComplete="off"
-            spellCheck="false"
-            placeholder="https://"
-            value={delivery}
-            onChange={(event) => setDelivery(event.target.value)}
-          />
+        <div className="desk-fields">
+          <div className="field">
+            <label htmlFor={`send-to-${claim.id}`}>Send the letter to</label>
+            <input
+              id={`send-to-${claim.id}`}
+              type="email"
+              autoComplete="off"
+              value={sendTo}
+              onChange={(event) => setSendTo(event.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor={`delivery-${claim.id}`}>Paste the logistics link</label>
+            <input
+              id={`delivery-${claim.id}`}
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              spellCheck="false"
+              placeholder="https://"
+              value={delivery}
+              onChange={(event) => setDelivery(event.target.value)}
+            />
+          </div>
         </div>
         {delivery.trim() ? <p className="claim-meta">The button opens the logistics page {delivery.trim()}</p> : null}
         {error ? <p className="error">{error}</p> : null}
-        {note ? <p className="claim-meta">{note}</p> : null}
         <div className="drawer-actions desk-actions">
           <button className="btn" type="submit" disabled={busy}>
             {busy ? "Sending…" : "Send the letter"}
-          </button>
-          {claim.adminNotice !== "sent" ? (
-            <button
-              className="btn btn-ghost"
-              type="button"
-              disabled={busy}
-              onClick={() => post(`/api/admin/claims/${claim.id}/notify`, {}).then((sent) => {
-                if (sent) setNote("Desk notice sent.")
-              })}
-            >
-              Notify the desk
-            </button>
-          ) : null}
-          <button
-            className="btn btn-ghost"
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              if (!window.confirm(`Remove ${claim.id} from the desk?`)) return
-              post(`/api/admin/claims/${claim.id}/remove`, {}).then((sent) => {
-                if (sent) setNote("Claim removed.")
-              })
-            }}
-          >
-            Remove claim
           </button>
         </div>
         {closed ? <p className="claim-meta">This claim is closed. Select it again before sending a letter.</p> : null}
       </form>
       <CustomerNote claim={claim} pass={pass} onDone={onDone} />
+      <div className="drawer-actions desk-actions claim-remove">
+        <button
+          className="btn btn-ghost"
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            if (!window.confirm(`Remove ${claim.id} from the desk?`)) return
+            post(`/api/admin/claims/${claim.id}/remove`, {}).then((sent) => {
+              if (sent) setNote("Claim removed.")
+            })
+          }}
+        >
+          Remove claim
+        </button>
+      </div>
     </article>
   )
 }
@@ -621,13 +668,6 @@ function CustomerNote({ claim, pass, onDone }) {
           />
         </div>
       ) : null}
-      {claim.noteSentAt ? (
-        <p className="claim-meta">
-          Message sent {formatWhen(claim.noteSentAt)} to {claim.noteSentTo || "the customer"}
-          {claim.noteLink ? ", with a link." : ". No link was included."}
-        </p>
-      ) : null}
-      {claim.noteError ? <p className="error">{claim.noteError}</p> : null}
       {error ? <p className="error">{error}</p> : null}
       {sent ? <p className="desk-note">{sent}</p> : null}
       <button className="btn btn-block" type="submit" disabled={busy}>

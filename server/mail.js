@@ -297,14 +297,22 @@ export function claimSuccess(record) {
   return { subject, text, html }
 }
 
+export function publicMailError(error) {
+  return String(error?.message || "The email could not be sent.")
+    .replace(/\b(pass(?:word)?|key|secret)\s*[:=]\s*\S+/gi, "$1=[hidden]")
+    .slice(0, 180)
+}
+
 export async function notifyClaimant(record) {
-  if (!configured() || !record?.email) return "unconfigured"
+  if (!configured() || !record?.email) {
+    return { status: "unconfigured", error: "Brevo is not configured on this server." }
+  }
   try {
     const message = claimSuccess(record)
     await sendMail({ to: record.email, subject: message.subject, text: message.text, html: message.html })
-    return "sent"
-  } catch {
-    return "failed"
+    return { status: "sent", error: "" }
+  } catch (error) {
+    return { status: "failed", error: publicMailError(error) }
   }
 }
 
@@ -402,13 +410,15 @@ export function selectionLetter(record, link) {
 }
 
 export async function notifyAdmin(record) {
-  if (!configured() || !adminInbox()) return "unconfigured"
+  if (!configured() || !adminInbox()) {
+    return { status: "unconfigured", error: "Brevo is not configured on this server." }
+  }
   try {
     const message = claimNotice(record)
     await sendMail({ to: adminInbox(), subject: message.subject, text: message.text, html: message.html })
-    return "sent"
-  } catch {
-    return "failed"
+    return { status: "sent", error: "" }
+  } catch (error) {
+    return { status: "failed", error: publicMailError(error) }
   }
 }
 

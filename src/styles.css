@@ -783,7 +783,22 @@ section { scroll-margin-top: var(--header); }
   color: var(--accent);
 }
 
-.claim-standing { max-width: 280px; margin-top: 20px; }
+.claim-standing { margin-top: 20px; }
+
+.mail-results {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.mail-results li {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.claim-remove { margin-top: 16px; }
 
 .letter-panel {
   margin-top: 8px;
@@ -829,6 +844,7 @@ section { scroll-margin-top: var(--header); }
   .desk-tools { grid-template-columns: minmax(0, 1fr) auto; }
   .desk-actions .btn { width: auto; }
   .claim-facts { grid-template-columns: 140px minmax(0, 1fr); }
+  .claim-standing { max-width: 420px; }
   .claim-card { padding: 24px; }
 }
 
