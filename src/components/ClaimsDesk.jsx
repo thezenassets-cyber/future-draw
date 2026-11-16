@@ -504,8 +504,8 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
         <p className="kicker">Congratulations letter</p>
         <p className="letter-hint">
           {selected
-            ? "The standing is Selected. Enter the inbox and the logistics link, then send."
-            : "Enter the inbox and the logistics link. Sending marks this claim Selected."}
+            ? "Paste the delivery link and send."
+            : "Paste the delivery link and send. Sending marks this claim Selected."}
         </p>
         <div className="desk-fields">
           <div className="field">
@@ -532,7 +532,11 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
             />
           </div>
         </div>
-        {delivery.trim() ? <p className="claim-meta">The button opens the logistics page {delivery.trim()}</p> : null}
+        {delivery.trim() ? (
+          <p className="claim-meta">
+            The button opens {delivery.trim()}. The letter tells them to give that company this code and their receiving address, then track the package until it arrives.
+          </p>
+        ) : null}
         {error ? <p className="error">{error}</p> : null}
         <div className="drawer-actions desk-actions">
           <button className="btn" type="submit" disabled={busy}>

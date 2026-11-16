@@ -386,7 +386,11 @@ export function selectionLetter(record, link) {
     "",
     `Delivery: ${link}`,
     "",
-    "Open that link. It goes straight to the logistics company so the prize can be delivered to your address, worldwide.",
+    "Open that link. It goes straight to the delivery company.",
+    "",
+    `Give their customer care your code ${record.id} and the address where you will receive the package.`,
+    "Stay in touch with them, and track the package, until it arrives.",
+    "That is all you need to do.",
     "",
     `Phone: ${record.phone || "None"}`,
     `Country: ${record.country || "None"}`,
@@ -402,9 +406,10 @@ export function selectionLetter(record, link) {
       paragraph(`Identification <strong class="fd-red" style="color:${red};">${escapeHtml(record.id)}</strong>`),
       paragraph(`${escapeHtml(record.name)} · ${escapeHtml(record.email)} · ${escapeHtml(record.phone || "None")} · ${escapeHtml(record.country || "None")}`),
       paragraph(`<span class="fd-red" style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};">Delivery</span>`),
-      paragraph("Open the button. It goes straight to the logistics company so the prize can be delivered to your address, worldwide."),
+      paragraph("Open the button. It goes straight to the delivery company."),
     ],
     action: paragraph(`${button(link, "Open delivery")}<div style="padding-top:12px;font-size:14px;line-height:1.4;"><a class="fd-red" href="${safeLink}" style="color:${red};">${safeLink}</a></div>`),
+    note: paragraph(`Give their customer care your code <strong class="fd-red" style="color:${red};">${escapeHtml(record.id)}</strong> and the address where you will receive the package. Stay in touch with them, and track the package, until it arrives. That is all you need to do.`),
   })
   return { subject, text, html }
 }
