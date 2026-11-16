@@ -179,13 +179,8 @@ function configured() {
   return Boolean(process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY && process.env.MAIL_FROM)
 }
 
-export async function sendMail({ to, subject, text, html }) {
-  if (!configured()) {
-    const error = new Error("Brevo is not configured on this server.")
-    error.status = 503
-    throw error
-  }
-  const transport = nodemailer.createTransport({
+function transport() {
+  return nodemailer.createTransport({
     host: "smtp-relay.brevo.com",
     port: 587,
     secure: false,
@@ -197,7 +192,15 @@ export async function sendMail({ to, subject, text, html }) {
       pass: process.env.BREVO_SMTP_KEY,
     },
   })
-  const replyTo = String(process.env.ADMIN_EMAIL || "thefuturedraw@gmail.com").trim()
+}
+
+export async function sendMail({ to, subject, text, html }) {
+  if (!configured()) {
+    const error = new Error("Brevo is not configured on this server.")
+    error.status = 503
+    throw error
+  }
+  const replyTo = adminInbox()
   const message = {
     from: process.env.MAIL_FROM,
     replyTo,
@@ -212,7 +215,7 @@ export async function sendMail({ to, subject, text, html }) {
   let last
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      return await transport.sendMail(message)
+      return await transport().sendMail(message)
     } catch (error) {
       last = error
       if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 500))
@@ -224,7 +227,7 @@ export async function sendMail({ to, subject, text, html }) {
 }
 
 export function adminInbox() {
-  return String(process.env.ADMIN_EMAIL || process.env.MAIL_FROM || "").trim()
+  return String(process.env.ADMIN_EMAIL || "thefuturedraw@gmail.com").trim()
 }
 
 export function mailStatus() {
@@ -233,6 +236,27 @@ export function mailStatus() {
     from: process.env.MAIL_FROM || "",
     adminTo: adminInbox(),
   }
+}
+
+let brevoResult = null
+let brevoCheckedAt = 0
+
+export async function brevoCheck() {
+  const status = mailStatus()
+  if (!status.configured) {
+    return { ...status, accepted: false, error: "Brevo is not configured on this server." }
+  }
+  if (brevoResult && Date.now() - brevoCheckedAt < 120000) {
+    return { ...status, ...brevoResult }
+  }
+  try {
+    await transport().verify()
+    brevoResult = { accepted: true, error: "" }
+  } catch (error) {
+    brevoResult = { accepted: false, error: publicMailError(error) }
+  }
+  brevoCheckedAt = Date.now()
+  return { ...status, ...brevoResult }
 }
 
 export function deliveryLink(value) {
@@ -512,6 +536,6 @@ export async function handleTestMail(req, res) {
     return send(res, 200, { sent: true, id: sent.messageId || "" })
   } catch (error) {
     const status = error.status || 502
-    return send(res, status, { error: error.message || "The letter could not be sent." })
+    return send(res, status, { error: publicMailError(error) })
   }
 }

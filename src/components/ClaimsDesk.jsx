@@ -74,7 +74,7 @@ export default function ClaimsDesk({ pass }) {
 
   function show(body) {
     ticket.current += 1
-    if (body.mail) setMail(body.mail)
+    if (body.mail) setMail((current) => ({ ...current, ...body.mail }))
     if (body.storage) setStorage(body.storage)
     if (Array.isArray(body.claims)) setClaims(body.claims)
   }
@@ -92,13 +92,24 @@ export default function ClaimsDesk({ pass }) {
       return
     }
     setError("")
-    setMail(body.mail)
+    setMail((current) => ({ ...current, ...body.mail }))
     setStorage(body.storage || null)
     setClaims(body.claims || [])
   }
 
   useEffect(() => {
     let active = true
+    fetch("/api/admin/mail", {
+      cache: "no-store",
+      headers: { "X-Admin-Pass": pass },
+    })
+      .then((response) => response.json())
+      .then((body) => {
+        if (active && body && typeof body.configured === "boolean") {
+          setMail((current) => ({ ...current, ...body }))
+        }
+      })
+      .catch(() => {})
     load().catch(() => {
       if (active) setError("The claims could not be loaded.")
     })
@@ -307,18 +318,26 @@ function AddClaim({ pass, onDone, onError }) {
 }
 
 function MailState({ mail }) {
-  if (mail.configured) {
+  if (mail.accepted) {
     return (
       <p className="mail-state">
         Brevo is connected. Letters send from {mail.from}. A reply arrives at {mail.adminTo}, not inside this desk.
       </p>
     )
   }
+  if (mail.accepted === false) {
+    return <p className="error">{mail.error || "Brevo did not accept the login."}</p>
+  }
+  if (mail.configured) {
+    return (
+      <p className="mail-state">
+        Checking Brevo. Letters send from {mail.from}. A reply arrives at {mail.adminTo}, not inside this desk.
+      </p>
+    )
+  }
   return (
-    <p className="mail-state">
-      Brevo is not connected yet. Claims still register. Set BREVO_SMTP_LOGIN, BREVO_SMTP_KEY,
-      MAIL_FROM, and ADMIN_EMAIL on the server, then send a desk test below. ADMIN_EMAIL is the
-      inbox that receives each new claim. If it is empty, notices go to MAIL_FROM.
+    <p className="error">
+      Brevo is not connected. Claims still register. The server needs BREVO_SMTP_LOGIN, BREVO_SMTP_KEY, and MAIL_FROM.
     </p>
   )
 }

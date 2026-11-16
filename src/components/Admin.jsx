@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import ClaimsDesk from "./ClaimsDesk.jsx"
 import InstallApp from "./InstallApp.jsx"
 import { site } from "../config.js"
@@ -6,6 +6,61 @@ import { formatDrawWhen, getDrawEnd, releaseServerClock, setDrawDuration, setDra
 
 function pad(value) {
   return String(value).padStart(2, "0")
+}
+
+const menuItems = [
+  ["#claims", "Claims"],
+  ["#clock", "Clock"],
+  ["#test-letter", "Mail"],
+]
+
+function DeskMenu() {
+  const [open, setOpen] = useState(false)
+  const root = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    function close(event) {
+      if (!root.current?.contains(event.target)) setOpen(false)
+    }
+    function onKey(event) {
+      if (event.key === "Escape") setOpen(false)
+    }
+    document.addEventListener("pointerdown", close)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("pointerdown", close)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [open])
+
+  return (
+    <div className="desk-menu" ref={root}>
+      <button
+        className="menu-button"
+        type="button"
+        aria-expanded={open}
+        aria-controls="desk-menu"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="menu-icon" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+        Menu
+      </button>
+      {open ? (
+        <nav className="menu-panel" id="desk-menu" aria-label="Desk">
+          {menuItems.map(([href, label]) => (
+            <a key={href} href={href} onClick={() => setOpen(false)}>
+              {label}
+            </a>
+          ))}
+        </nav>
+      ) : null}
+    </div>
+  )
 }
 
 function localInput(end) {
@@ -127,15 +182,13 @@ export default function Admin() {
     <main className="admin">
       <InstallApp desk />
       <div className="wrap">
-        <p className="kicker">Admin</p>
-        <h1 className="admin-title">{unlocked ? "Desk" : "Draw countdown"}</h1>
-        {unlocked ? (
-          <nav className="admin-nav" aria-label="Desk">
-            <a href="#claims">Claims</a>
-            <a href="#clock">Clock</a>
-            <a href="#test-letter">Mail</a>
-          </nav>
-        ) : null}
+        <div className="desk-head">
+          <div>
+            <p className="kicker">Admin</p>
+            <h1 className="admin-title">{unlocked ? "Desk" : "Draw countdown"}</h1>
+          </div>
+          {unlocked ? <DeskMenu /> : null}
+        </div>
         {unlocked ? <ClaimsDesk pass={pass} /> : null}
         <section id="clock">
         <p className="lede">

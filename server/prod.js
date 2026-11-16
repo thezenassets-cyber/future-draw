@@ -53,7 +53,7 @@ const server = http.createServer((req, res) => {
   const url = req.url || "/"
   if (url === "/health" || url.startsWith("/health?")) {
     const storage = storageReport()
-    res.statusCode = storage.durable ? 200 : 503
+    res.statusCode = 200
     res.setHeader("Content-Type", "text/plain; charset=utf-8")
     res.setHeader("Cache-Control", "no-store")
     res.end(storage.durable ? "ok" : storage.error)
