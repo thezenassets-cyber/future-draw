@@ -286,6 +286,7 @@ export function mailStatus() {
     adminTo: adminInbox(),
     letter: "congrats-prize",
     delivery: "recipient-accepted",
+    selection: "one-minute",
   }
 }
 

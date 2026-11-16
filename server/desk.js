@@ -60,6 +60,7 @@ function present(entries, record) {
     letterSentAt: record.letterSentAt || "",
     letterSentTo: record.letterSentTo || "",
     letterError: record.letterError || "",
+    letterDueAt: record.letterDueAt || "",
     entryMail: record.entryMail || "unsent",
     entryMailAt: record.entryMailAt || "",
     entryMailTo: record.entryMailTo || "",
@@ -225,6 +226,7 @@ export async function handleAdmin(req, res) {
       item.letterSentAt = new Date().toISOString()
       item.letterSentTo = to
       item.letterError = ""
+      item.letterDueAt = ""
       item.status = "selected"
     })
     return send(res, 200, claimsPayload())
@@ -286,6 +288,7 @@ export async function handleAdmin(req, res) {
     const item = entries.find((entry) => entry.id === id)
     if (!item) return false
     item.status = body.status
+    if (!item.letterSentAt && (body.status === "closed" || body.status === "review")) item.letterDueAt = ""
     return true
   })
   if (!updated) return send(res, 404, { error: "Not found" })

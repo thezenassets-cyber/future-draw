@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 import { readDrawEnd } from "./clock.js"
 import { storageReport } from "./store.js"
 import { handleAdmin } from "./desk.js"
-import { handle } from "./entries-api.js"
+import { handle, startSelectionDesk } from "./entries-api.js"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dist")
 const port = Number(process.env.PORT) || 10000
@@ -106,5 +106,6 @@ const server = http.createServer((req, res) => {
 })
 
 server.listen(port, "0.0.0.0", () => {
+  startSelectionDesk()
   console.log(`Future Draw listening on 0.0.0.0:${port}`)
 })

@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { notifyAdmin, notifyClaimant } from "./mail.js"
+import { deliveryLink, notifyAdmin, notifyClaimant, publicMailError, sendSelection } from "./mail.js"
 import { storageReport, storeFile } from "./store.js"
 
 function file() {
@@ -101,8 +101,70 @@ function write(entries, removedIds = []) {
 
 let chain = Promise.resolve()
 
+const selectionWait = 60 * 1000
+const selectionSite = "https://futuredraw.live"
+const selectionSending = new Set()
+
 export function listEntries() {
   return read()
+}
+
+export function dueSelections(entries, now = Date.now()) {
+  return entries.filter((item) => {
+    if (!item?.id || !item.letterDueAt || item.letterSentAt) return false
+    if (item.status === "closed" || item.status === "review") return false
+    if ((Number(item.letterAttempts) || 0) >= 3) return false
+    const at = Date.parse(item.letterDueAt)
+    return Number.isFinite(at) && at <= now
+  })
+}
+
+export async function releaseDueLetters(now = Date.now()) {
+  if (!storageReport().durable) return
+  const due = dueSelections(listEntries(), now)
+  for (const item of due) {
+    if (selectionSending.has(item.id)) continue
+    selectionSending.add(item.id)
+    const link = deliveryLink(item.deliveryUrl) || selectionSite
+    try {
+      await sendSelection(item, link, item.email)
+      await updateEntries((entries) => {
+        const current = entries.find((entry) => entry.id === item.id)
+        if (!current || current.letterSentAt) return
+        if (current.status === "closed" || current.status === "review") return
+        current.status = "selected"
+        current.deliveryUrl = link
+        current.letterSentAt = new Date().toISOString()
+        current.letterSentTo = current.email
+        current.letterError = ""
+        current.letterDueAt = ""
+      })
+    } catch (error) {
+      const attempts = (Number(item.letterAttempts) || 0) + 1
+      await updateEntries((entries) => {
+        const current = entries.find((entry) => entry.id === item.id)
+        if (!current || current.letterSentAt) return
+        current.letterAttempts = attempts
+        current.letterError = publicMailError(error)
+        current.letterSentAt = ""
+        current.letterSentTo = current.email
+        current.letterDueAt = attempts >= 3 ? "" : new Date(Date.now() + attempts * selectionWait).toISOString()
+      })
+    } finally {
+      selectionSending.delete(item.id)
+    }
+  }
+}
+
+let selectionTimer = null
+
+export function startSelectionDesk() {
+  if (selectionTimer) return
+  selectionTimer = setInterval(() => {
+    releaseDueLetters().catch(() => {})
+  }, 5000)
+  selectionTimer.unref?.()
+  releaseDueLetters().catch(() => {})
 }
 
 export function updateEntries(mutator, options = {}) {
@@ -224,6 +286,8 @@ export async function handle(req, res) {
     }
     const record = clean(body, [])
     if (!record) return send(res, 400, { error: "Invalid entry." })
+    record.letterDueAt = new Date(Date.now() + selectionWait).toISOString()
+    record.letterAttempts = 0
     let saved
     try {
       saved = await updateEntries((entries) => {
@@ -292,6 +356,7 @@ export function entriesApi() {
   return {
     name: "entries-api",
     configureServer(server) {
+      startSelectionDesk()
       server.middlewares.use("/api/entries", middleware)
     },
     configurePreviewServer(server) {

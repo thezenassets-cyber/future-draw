@@ -50,8 +50,15 @@ function mailResult(label, status, at, to, error) {
 }
 
 function letterLine(claim) {
+  if (claim.letterSentAt && !claim.letterError) {
+    return mailResult("Congratulations letter", "sent", claim.letterSentAt, claim.letterSentTo, "")
+  }
+  if (claim.letterDueAt && !claim.letterSentAt) {
+    const when = formatWhen(claim.letterDueAt)
+    if (claim.letterError) return `Congratulations letter: not sent yet. ${claim.letterError} It tries again at ${when}.`
+    return `Congratulations letter: sends at ${when}.`
+  }
   if (claim.letterError) return mailResult("Congratulations letter", "failed", "", claim.letterSentTo, claim.letterError)
-  if (claim.letterSentAt) return mailResult("Congratulations letter", "sent", claim.letterSentAt, claim.letterSentTo, "")
   return mailResult("Congratulations letter", "unsent")
 }
 
@@ -522,9 +529,11 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
       <form className="letter-panel" onSubmit={sendLetter} noValidate>
         <p className="kicker">Congratulations letter</p>
         <p className="letter-hint">
-          {selected
-            ? "Paste the delivery link and send."
-            : "Paste the delivery link and send. Sending marks this claim Selected."}
+          {claim.letterDueAt && !claim.letterSentAt
+            ? `Sends at ${formatWhen(claim.letterDueAt)}. Set Under consideration or Closed to hold it. The claim stays until you remove it.`
+            : selected
+              ? "Paste the delivery link and send. The claim stays until you remove it."
+              : "Paste the delivery link and send. Sending marks this claim Selected. The claim stays until you remove it."}
         </p>
         <div className="desk-fields">
           <div className="field">
