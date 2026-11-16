@@ -7,7 +7,7 @@ export default function Rules() {
     ["Eligibility", "Customers aged 18 or older. One entry per person."],
     ["Fee", "No purchase and no payment to claim an entry."],
     ["Draw", `The draw is on ${when.date} at ${when.time}. Odds depend on the number of entries.`],
-    ["Notice", "A winner is contacted by email and phone. An entry is not a win."],
+    ["Notice", "The desk emails the customer about one minute after the claim. Keep the identification code. The claim stays until the desk removes it."],
     ["Invite", "A finished invite adds one extra entry for the person who shared the link. The friend is entered on their own. An invite is not a win."],
     ["Payment", "Cash is paid to the verified winner after the draw."],
     ["Vehicles", `${site.brand} is not affiliated with Tesla, Inc. Cars are prizes in this promotion.`],

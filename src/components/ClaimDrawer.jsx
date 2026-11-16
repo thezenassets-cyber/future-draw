@@ -1,6 +1,5 @@
 import { useEffect, useId, useState } from "react"
 import { site } from "../config.js"
-import { formatDrawWhen } from "../draw.js"
 import { chanceCount, inviteLink, rememberEntry, saveEntry } from "../entries.js"
 import { formatCash } from "../prizes.js"
 
@@ -282,7 +281,8 @@ function Identification({ entry, onClose }) {
       <p>
         This code is your identification for the {entry.prizeName} and{" "}
         {formatCash(entry.cash)}. You have {chanceLabel}. One finished invite adds one
-        chance. It is not a winning notice. The draw is on {formatDrawWhen().date}.{" "}
+        chance. Keep this code. The desk emails you within a minute. Check the inbox
+        and the spam folder.{" "}
         {entry.deskNotified
           ? "The desk has been notified of this registration."
           : "This registration is stored with the desk under your code."}

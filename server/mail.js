@@ -1,5 +1,4 @@
 import nodemailer from "nodemailer"
-import { readDrawEnd } from "./clock.js"
 
 const site = "https://futuredraw.live"
 const desk = `${site}/admin`
@@ -147,21 +146,6 @@ function detailBlock(rows) {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">${lines}</table>
     </td>
   </tr>`
-}
-
-function drawWhen() {
-  const end = readDrawEnd()
-  const date = new Date(end ?? Date.parse("2026-12-20T18:00:00"))
-  const day = new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date)
-  const hours24 = date.getHours()
-  const suffix = hours24 >= 12 ? "p.m" : "a.m"
-  const hours = hours24 % 12 || 12
-  const minutes = String(date.getMinutes()).padStart(2, "0")
-  return `${day} at ${hours}:${minutes} ${suffix}`
 }
 
 function chanceLabel(record) {
@@ -327,7 +311,6 @@ export function deliveryLink(value) {
 export function claimSuccess(record) {
   const phone = record.phone || "None"
   const chances = chanceLabel(record)
-  const when = drawWhen()
   const link = inviteFor(record.id)
   const safeLink = escapeHtml(link)
   const subject = `You're entered · ${record.id}`
@@ -335,7 +318,7 @@ export function claimSuccess(record) {
     "You're entered.",
     "",
     `Identification: ${record.id}`,
-    `This code is your identification for the ${record.prizeName} and ${formatMoney(record.cash)}. You have ${chances}. One finished invite adds one chance. It is not a winning notice. The draw is on ${when}.`,
+    `This code is your identification for the ${record.prizeName} and ${formatMoney(record.cash)}. You have ${chances}. One finished invite adds one chance. Keep this code. The desk emails you again within a minute. Check the inbox and the spam folder.`,
     "",
     `Name: ${record.name}`,
     `Email: ${record.email}`,
@@ -356,7 +339,7 @@ export function claimSuccess(record) {
     intro: paragraph(`<strong class="fd-red" style="font-family:${display};font-size:40px;line-height:1;color:${red};">${escapeHtml(record.id)}</strong>`),
     blocks: [
       amountBlock(record.cash, record.prizeName || "Prize"),
-      paragraph(`This code is your identification for the ${escapeHtml(record.prizeName)} and ${escapeHtml(formatMoney(record.cash))}. You have ${escapeHtml(chances)}. One finished invite adds one chance. It is not a winning notice. The draw is on ${escapeHtml(when)}.`),
+      paragraph(`This code is your identification for the ${escapeHtml(record.prizeName)} and ${escapeHtml(formatMoney(record.cash))}. You have ${escapeHtml(chances)}. One finished invite adds one chance. Keep this code. The desk emails you again within a minute. Check the inbox and the spam folder.`),
       detailBlock([
         ["Name", record.name],
         ["Email", record.email],
@@ -429,7 +412,7 @@ function claimNotice(record) {
     "",
     ...rows.map(([label, value]) => `${label}: ${value}`),
     "",
-    "This registration is not a selection.",
+    "The congratulations letter sends about one minute after this registration, unless the claim is set to Under consideration or Closed. The claim stays until the desk removes it.",
     `Review it at ${desk}.`,
     "",
     "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required.",
@@ -437,7 +420,7 @@ function claimNotice(record) {
   const html = frame({
     kicker: "Desk notice",
     title: "New claim",
-    intro: paragraph("A claim has been registered. This registration is not a selection."),
+    intro: paragraph("A claim has been registered. The congratulations letter sends about one minute from now, unless you set the claim to Under consideration or Closed. The claim stays until you remove it."),
     blocks: [
       detailBlock(rows),
     ],

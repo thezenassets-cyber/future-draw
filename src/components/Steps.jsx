@@ -1,11 +1,8 @@
-import { formatDrawWhen, useDrawEnd } from "../draw.js"
-
 function goTo(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
 export default function Steps({ selected, entry, onDetails, onCode }) {
-  const when = formatDrawWhen(useDrawEnd())
   const steps = [
     {
       index: "01",
@@ -31,7 +28,7 @@ export default function Steps({ selected, entry, onDetails, onCode }) {
       index: "03",
       title: "Your identification",
       body: entry
-        ? `Your identification code is ready. The draw is on ${when.date}.`
+        ? "Your identification code is ready. The desk emails you within a minute."
         : "Your identification code is issued here, after the claim details are complete.",
       label: entry ? "Show your code" : "Finish the claim first",
       ready: Boolean(entry),

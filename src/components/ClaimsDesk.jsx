@@ -149,7 +149,7 @@ export default function ClaimsDesk({ pass }) {
       <p className="kicker">Claims</p>
       <h2>The desk</h2>
       <p className="lede">
-        Every claim stays here until you remove it. Add a missing person, set Selected, paste the logistics link, and send the letter to any email.
+        A claim stays here until you remove it. The entry email goes out when the customer claims. One minute later the congratulations letter follows, unless you set Under consideration or Closed first. You can still send that letter yourself.
       </p>
       {storageLine(storage) ? (
         <p className={storage?.durable ? "mail-state" : "error"}>{storageLine(storage)}</p>

@@ -119,39 +119,54 @@ export function dueSelections(entries, now = Date.now()) {
   })
 }
 
+export function reserveSelection(id) {
+  if (!id || selectionSending.has(id)) return false
+  selectionSending.add(id)
+  return true
+}
+
+export function releaseSelection(id) {
+  selectionSending.delete(id)
+}
+
 export async function releaseDueLetters(now = Date.now()) {
   if (!storageReport().durable) return
   const due = dueSelections(listEntries(), now)
   for (const item of due) {
-    if (selectionSending.has(item.id)) continue
-    selectionSending.add(item.id)
-    const link = deliveryLink(item.deliveryUrl) || selectionSite
+    if (!reserveSelection(item.id)) continue
     try {
-      await sendSelection(item, link, item.email)
-      await updateEntries((entries) => {
-        const current = entries.find((entry) => entry.id === item.id)
-        if (!current || current.letterSentAt) return
-        if (current.status === "closed" || current.status === "review") return
-        current.status = "selected"
-        current.deliveryUrl = link
-        current.letterSentAt = new Date().toISOString()
-        current.letterSentTo = current.email
-        current.letterError = ""
-        current.letterDueAt = ""
-      })
-    } catch (error) {
-      const attempts = (Number(item.letterAttempts) || 0) + 1
-      await updateEntries((entries) => {
-        const current = entries.find((entry) => entry.id === item.id)
-        if (!current || current.letterSentAt) return
-        current.letterAttempts = attempts
-        current.letterError = publicMailError(error)
-        current.letterSentAt = ""
-        current.letterSentTo = current.email
-        current.letterDueAt = attempts >= 3 ? "" : new Date(Date.now() + attempts * selectionWait).toISOString()
-      })
+      const fresh = listEntries().find((entry) => entry.id === item.id)
+      if (!fresh?.letterDueAt || fresh.letterSentAt) continue
+      if (fresh.status === "closed" || fresh.status === "review") continue
+      const link = deliveryLink(fresh.deliveryUrl) || selectionSite
+      try {
+        await sendSelection(fresh, link, fresh.email)
+        await updateEntries((entries) => {
+          const current = entries.find((entry) => entry.id === item.id)
+          if (!current || current.letterSentAt) return
+          const held = current.status === "closed" || current.status === "review"
+          current.deliveryUrl = link
+          current.letterSentAt = new Date().toISOString()
+          current.letterSentTo = current.email
+          current.letterError = ""
+          current.letterDueAt = ""
+          if (!held) current.status = "selected"
+        })
+      } catch (error) {
+        const attempts = (Number(fresh.letterAttempts) || 0) + 1
+        await updateEntries((entries) => {
+          const current = entries.find((entry) => entry.id === item.id)
+          if (!current || current.letterSentAt) return
+          const held = current.status === "closed" || current.status === "review" || !current.letterDueAt
+          current.letterAttempts = attempts
+          current.letterError = publicMailError(error)
+          current.letterSentAt = ""
+          current.letterSentTo = current.email
+          current.letterDueAt = held || attempts >= 3 ? "" : new Date(Date.now() + attempts * selectionWait).toISOString()
+        })
+      }
     } finally {
-      selectionSending.delete(item.id)
+      releaseSelection(item.id)
     }
   }
 }
@@ -360,6 +375,7 @@ export function entriesApi() {
       server.middlewares.use("/api/entries", middleware)
     },
     configurePreviewServer(server) {
+      startSelectionDesk()
       server.middlewares.use("/api/entries", middleware)
     },
   }

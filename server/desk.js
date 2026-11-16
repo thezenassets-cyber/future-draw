@@ -1,5 +1,5 @@
 import { writeDrawEnd } from "./clock.js"
-import { listEntries, updateEntries, buildClaim } from "./entries-api.js"
+import { listEntries, updateEntries, buildClaim, reserveSelection, releaseSelection } from "./entries-api.js"
 import { brevoCheck, deliveryLink, handleTestMail, mailStatus, notifyAdmin, notifyClaimant, publicMailError, sendCustomerNote, sendSelection } from "./mail.js"
 import { storageReport } from "./store.js"
 
@@ -205,7 +205,15 @@ export async function handleAdmin(req, res) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       return send(res, 400, { error: "Enter the email that should receive the letter." })
     }
+    if (!reserveSelection(id)) {
+      return send(res, 409, { error: "The congratulations letter is already being sent." })
+    }
     try {
+      await updateEntries((entries) => {
+        const item = entries.find((entry) => entry.id === id)
+        if (!item || item.letterSentAt) return
+        item.letterDueAt = ""
+      })
       await sendSelection(current, link, to)
     } catch (error) {
       const message = publicMailError(error)
@@ -218,6 +226,8 @@ export async function handleAdmin(req, res) {
       })
       const status = error.status || 502
       return send(res, status, { error: message, ...claimsPayload() })
+    } finally {
+      releaseSelection(id)
     }
     await updateEntries((entries) => {
       const item = entries.find((entry) => entry.id === id)
