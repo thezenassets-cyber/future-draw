@@ -15,6 +15,7 @@ export default function Footer() {
         <div>
           <p className="kicker">Contact</p>
           <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
+          <p className="lede"><a href="/privacy.html">Privacy</a></p>
           <p className="lede">
             Draw date {when.date}, {when.time}.
           </p>

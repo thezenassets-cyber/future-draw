@@ -45,7 +45,7 @@ function mailResult(label, status, at, to, error) {
   const who = to ? ` to ${to}` : ""
   if (status === "sent") return `${label}: sent${when ? ` ${when}` : ""}${who}.`
   if (status === "failed") return `${label}: failed${when ? ` ${when}` : ""}${who}. ${error || "The email could not be sent."}`
-  if (status === "unconfigured") return `${label}: not sent. Brevo is not configured on this server.`
+  if (status === "unconfigured") return `${label}: not sent. Mailjet is not configured on this server.`
   return `${label}: not sent.`
 }
 
@@ -328,23 +328,23 @@ function MailState({ mail }) {
   if (mail.accepted) {
     return (
       <p className="mail-state">
-        Brevo is connected. Letters send from {mail.from}. A reply arrives at {mail.adminTo}, not inside this desk.
+        Mailjet is connected. Letters send from {mail.from}. A reply arrives at {mail.adminTo}, not inside this desk.
       </p>
     )
   }
   if (mail.accepted === false) {
-    return <p className="error">{mail.error || "Brevo did not accept the login."}</p>
+    return <p className="error">{mail.error || "Mailjet did not accept the login."}</p>
   }
   if (mail.configured) {
     return (
       <p className="mail-state">
-        Checking Brevo. Letters send from {mail.from}. A reply arrives at {mail.adminTo}, not inside this desk.
+        Checking Mailjet. Letters send from {mail.from}. A reply arrives at {mail.adminTo}, not inside this desk.
       </p>
     )
   }
   return (
     <p className="error">
-      Brevo is not connected. Claims still register. The server needs BREVO_SMTP_LOGIN, BREVO_SMTP_KEY, and MAIL_FROM.
+      Mailjet is not connected. Claims still register. The server needs MAILJET_API_KEY, MAILJET_SECRET_KEY, and MAIL_FROM.
     </p>
   )
 }

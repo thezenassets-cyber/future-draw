@@ -1,6 +1,6 @@
 import { writeDrawEnd } from "./clock.js"
 import { listEntries, updateEntries, buildClaim, reserveSelection, releaseSelection } from "./entries-api.js"
-import { brevoCheck, deliveryLink, handleTestMail, mailStatus, notifyAdmin, notifyClaimant, publicMailError, sendCustomerNote, sendSelection } from "./mail.js"
+import { deliveryLink, handleTestMail, mailCheck, mailStatus, notifyAdmin, notifyClaimant, publicMailError, sendCustomerNote, sendSelection } from "./mail.js"
 import { storageReport } from "./store.js"
 
 const standings = new Set(["received", "review", "selected", "closed"])
@@ -112,7 +112,7 @@ export async function handleAdmin(req, res) {
   }
 
   if (req.method === "GET" && parts.length === 1 && parts[0] === "mail") {
-    return send(res, 200, await brevoCheck())
+    return send(res, 200, await mailCheck())
   }
 
   if (req.method === "GET" && parts.length === 1 && parts[0] === "claims") {

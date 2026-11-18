@@ -180,20 +180,20 @@ function send(res, status, body) {
 }
 
 function configured() {
-  return Boolean(process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY && process.env.MAIL_FROM)
+  return Boolean(process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET_KEY && process.env.MAIL_FROM)
 }
 
 function transport() {
   return nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
+    host: "in-v3.mailjet.com",
     port: 587,
     secure: false,
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 20000,
     auth: {
-      user: process.env.BREVO_SMTP_LOGIN,
-      pass: process.env.BREVO_SMTP_KEY,
+      user: process.env.MAILJET_API_KEY,
+      pass: process.env.MAILJET_SECRET_KEY,
     },
   })
 }
@@ -224,7 +224,7 @@ function retryable(error) {
 
 export async function sendMail({ to, subject, text, html }) {
   if (!configured()) {
-    const error = new Error("Brevo is not configured on this server.")
+    const error = new Error("Mailjet is not configured on this server.")
     error.status = 503
     throw error
   }
@@ -236,11 +236,6 @@ export async function sendMail({ to, subject, text, html }) {
     subject,
     text,
     html,
-    headers: {
-      "X-Mailin-Track": "0",
-      "X-Mailin-Track-Clicks": "0",
-      "X-Mailin-Track-Opens": "0",
-    },
   }
   let last
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -274,25 +269,25 @@ export function mailStatus() {
   }
 }
 
-let brevoResult = null
-let brevoCheckedAt = 0
+let relayResult = null
+let relayCheckedAt = 0
 
-export async function brevoCheck() {
+export async function mailCheck() {
   const status = mailStatus()
   if (!status.configured) {
-    return { ...status, accepted: false, error: "Brevo is not configured on this server." }
+    return { ...status, accepted: false, error: "Mailjet is not configured on this server." }
   }
-  if (brevoResult && Date.now() - brevoCheckedAt < 120000) {
-    return { ...status, ...brevoResult }
+  if (relayResult && Date.now() - relayCheckedAt < 120000) {
+    return { ...status, ...relayResult }
   }
   try {
     await transport().verify()
-    brevoResult = { accepted: true, error: "" }
+    relayResult = { accepted: true, error: "" }
   } catch (error) {
-    brevoResult = { accepted: false, error: publicMailError(error) }
+    relayResult = { accepted: false, error: publicMailError(error) }
   }
-  brevoCheckedAt = Date.now()
-  return { ...status, ...brevoResult }
+  relayCheckedAt = Date.now()
+  return { ...status, ...relayResult }
 }
 
 export function deliveryLink(value) {
@@ -364,7 +359,7 @@ export function publicMailError(error) {
 
 export async function notifyClaimant(record) {
   if (!configured() || !record?.email) {
-    return { status: "unconfigured", error: "Brevo is not configured on this server." }
+    return { status: "unconfigured", error: "Mailjet is not configured on this server." }
   }
   try {
     const message = claimSuccess(record)
@@ -480,7 +475,7 @@ export function selectionLetter(record, link, options = {}) {
 
 export async function notifyAdmin(record) {
   if (!configured() || !adminInbox()) {
-    return { status: "unconfigured", error: "Brevo is not configured on this server." }
+    return { status: "unconfigured", error: "Mailjet is not configured on this server." }
   }
   try {
     const message = claimNotice(record)
