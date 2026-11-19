@@ -1,5 +1,3 @@
-import nodemailer from "nodemailer"
-
 const site = "https://futuredraw.live"
 const desk = `${site}/admin`
 
@@ -180,73 +178,76 @@ function send(res, status, body) {
 }
 
 function configured() {
-  return Boolean(process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET_KEY && process.env.MAIL_FROM)
+  return Boolean(process.env.RESEND_API_KEY && process.env.MAIL_FROM)
 }
 
-function transport() {
-  return nodemailer.createTransport({
-    host: "in-v3.mailjet.com",
-    port: 587,
-    secure: false,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 20000,
-    auth: {
-      user: process.env.MAILJET_API_KEY,
-      pass: process.env.MAILJET_SECRET_KEY,
-    },
-  })
-}
-
-export function deliveryReceipt(info, to) {
-  const target = String(to || "").trim().toLowerCase()
-  const listed = (value) => [].concat(value || []).map((item) => String(item).toLowerCase())
-  const accepted = listed(info?.accepted)
-  const rejected = listed(info?.rejected)
-  const pending = listed(info?.pending)
-  const response = String(info?.response || "").trim()
-  const named = accepted.some((item) => item.includes(target))
-  const blocked = rejected.some((item) => item.includes(target)) || pending.some((item) => item.includes(target))
-  if (!target || !named || blocked || /^[45]/.test(response)) {
-    const error = new Error("The mail server did not accept that inbox.")
-    error.status = 502
-    throw error
-  }
-  return {
-    messageId: String(info?.messageId || ""),
-    response: response.slice(0, 180),
-  }
+function fromDomain() {
+  const match = String(process.env.MAIL_FROM || "").match(/@([a-z0-9.-]+\.[a-z]{2,})/i)
+  return match ? match[1].toLowerCase() : ""
 }
 
 function retryable(error) {
-  return ["ECONNECTION", "ETIMEDOUT", "ESOCKET", "ECONNRESET", "EAI_AGAIN"].includes(String(error?.code || ""))
+  return ["ECONNECTION", "ETIMEDOUT", "ESOCKET", "ECONNRESET", "EAI_AGAIN", "UND_ERR_CONNECT_TIMEOUT"].includes(String(error?.code || error?.cause?.code || ""))
+}
+
+async function resend(path, options = {}) {
+  const response = await fetch(`https://api.resend.com${path}`, {
+    method: options.method || "GET",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: options.body,
+    signal: AbortSignal.timeout(20000),
+  })
+  const text = await response.text()
+  let payload = {}
+  if (text) {
+    try {
+      payload = JSON.parse(text)
+    } catch {
+      payload = { message: text.slice(0, 180) }
+    }
+  }
+  return { status: response.status, payload }
+}
+
+function resendError(payload, status) {
+  const raw = payload?.message || payload?.error || "Resend did not accept that letter."
+  const error = new Error(Array.isArray(raw) ? raw.join(" ") : String(raw))
+  error.status = status === 401 || status === 403 ? 503 : 502
+  return error
 }
 
 export async function sendMail({ to, subject, text, html }) {
   if (!configured()) {
-    const error = new Error("Mailjet is not configured on this server.")
+    const error = new Error("Resend is not configured on this server.")
     error.status = 503
     throw error
   }
-  const replyTo = adminInbox()
-  const message = {
+  const body = JSON.stringify({
     from: process.env.MAIL_FROM,
-    replyTo,
-    to,
+    to: [String(to).trim()],
+    reply_to: adminInbox(),
     subject,
     text,
     html,
-  }
+  })
   let last
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      const info = await transport().sendMail(message)
-      return deliveryReceipt(info, to)
+      const { status, payload } = await resend("/emails", { method: "POST", body })
+      if (status >= 200 && status < 300 && payload?.id) {
+        return { messageId: String(payload.id), response: "accepted" }
+      }
+      last = resendError(payload, status)
+      if (status !== 429 && status < 500) break
     } catch (error) {
       last = error
-      if (error.status === 502 || !retryable(error) || attempt === 3) break
-      await new Promise((resolve) => setTimeout(resolve, attempt * 500))
+      const temporary = retryable(error) || error instanceof TypeError || error?.name === "TimeoutError" || error?.name === "AbortError"
+      if (!temporary) break
     }
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 500))
   }
   if (last?.status) throw last
   const wrapped = new Error(last?.message || "The letter could not be sent.")
@@ -264,7 +265,7 @@ export function mailStatus() {
     from: process.env.MAIL_FROM || "",
     adminTo: adminInbox(),
     letter: "congrats-prize",
-    delivery: "recipient-accepted",
+    delivery: "resend-accepted",
     selection: "one-minute",
   }
 }
@@ -275,14 +276,27 @@ let relayCheckedAt = 0
 export async function mailCheck() {
   const status = mailStatus()
   if (!status.configured) {
-    return { ...status, accepted: false, error: "Mailjet is not configured on this server." }
+    return { ...status, accepted: false, error: "Resend is not configured on this server." }
   }
   if (relayResult && Date.now() - relayCheckedAt < 120000) {
     return { ...status, ...relayResult }
   }
   try {
-    await transport().verify()
-    relayResult = { accepted: true, error: "" }
+    const domain = fromDomain()
+    const { status: code, payload } = await resend("/domains")
+    const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : []
+    const match = list.find((item) => String(item?.name || "").toLowerCase() === domain)
+    if (code === 401 || code === 403) {
+      relayResult = { accepted: false, error: "Resend did not accept the API key." }
+    } else if (code < 200 || code >= 300) {
+      relayResult = { accepted: false, error: publicMailError(resendError(payload, code)) }
+    } else if (!match) {
+      relayResult = { accepted: false, error: `Resend does not have ${domain || "the sending domain"}.` }
+    } else if (String(match.status || "").toLowerCase() !== "verified") {
+      relayResult = { accepted: false, error: `Resend has not verified ${domain} yet.` }
+    } else {
+      relayResult = { accepted: true, error: "" }
+    }
   } catch (error) {
     relayResult = { accepted: false, error: publicMailError(error) }
   }
@@ -359,7 +373,7 @@ export function publicMailError(error) {
 
 export async function notifyClaimant(record) {
   if (!configured() || !record?.email) {
-    return { status: "unconfigured", error: "Mailjet is not configured on this server." }
+    return { status: "unconfigured", error: "Resend is not configured on this server." }
   }
   try {
     const message = claimSuccess(record)
@@ -475,7 +489,7 @@ export function selectionLetter(record, link, options = {}) {
 
 export async function notifyAdmin(record) {
   if (!configured() || !adminInbox()) {
-    return { status: "unconfigured", error: "Mailjet is not configured on this server." }
+    return { status: "unconfigured", error: "Resend is not configured on this server." }
   }
   try {
     const message = claimNotice(record)

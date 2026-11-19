@@ -21,9 +21,7 @@ services:
         value: /var/data
       - key: ADMIN_PASS
         sync: false
-      - key: MAILJET_API_KEY
-        sync: false
-      - key: MAILJET_SECRET_KEY
+      - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
         sync: false

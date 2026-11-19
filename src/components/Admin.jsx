@@ -276,7 +276,7 @@ export default function Admin() {
         {unlocked ? (
           <form className="admin-panel" id="test-letter" onSubmit={sendTest} noValidate>
             <p className="kicker">Desk letter</p>
-            <p className="letter-hint">Sends a sample of the congratulations letter. A real claim sends that letter one minute later, unless you hold the claim. This sample is not a selection. It is reported only after Mailjet accepts that inbox.</p>
+            <p className="letter-hint">Sends a sample of the congratulations letter. A real claim sends that letter one minute later, unless you hold the claim. This sample is not a selection. It is reported only after Resend accepts the letter.</p>
             <div className="field">
               <label htmlFor="test-mail">Send a test letter</label>
               <input
@@ -290,7 +290,7 @@ export default function Admin() {
             {testError ? <p className="error">{testError}</p> : null}
             {testNote ? <p className="lede">{testNote}</p> : null}
             <button className="btn" type="submit">
-              Send with Mailjet
+              Send with Resend
             </button>
           </form>
         ) : (

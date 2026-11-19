@@ -2,7 +2,7 @@ import { sendMail } from "./mail.js"
 
 const to = process.env.MAIL_TO || process.env.MAIL_FROM
 if (!to) {
-  console.error("Set MAILJET_API_KEY, MAILJET_SECRET_KEY, MAIL_FROM, and MAIL_TO.")
+  console.error("Set RESEND_API_KEY, MAIL_FROM, and MAIL_TO.")
   process.exit(1)
 }
 
