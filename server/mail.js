@@ -82,7 +82,7 @@ function frame({ kicker, title, intro, blocks, action, note, banner }) {
             <tr>
               <td bgcolor="${white}" style="padding:32px ${side} 8px;${paper}">
                 <div style="border-top:4px solid ${red};padding-top:16px;font-family:${ui};font-size:14px;line-height:1.6;color:${ink};">
-                  Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required.
+                  Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.
                   <a class="fd-red" href="${site}" style="color:${red};text-decoration:none;">futuredraw.live</a>
                 </div>
               </td>
@@ -114,25 +114,27 @@ function band(html) {
 
 function deliverySteps(codeHtml) {
   const steps = [
-    ["Open the delivery company", "Use the button below. It opens the company that sends the package to the address you give them."],
-    ["Give them your code", `When their customer care answers, give them your identification code, ${codeHtml}. That code is how they find this claim.`],
-    ["Give them your address", "Tell them the full address where you want the package delivered. They send it to the address you provide."],
-    ["Stay in touch until it arrives", "Remain in contact with the delivery company and track the package until it is in your hands. If they ask again, repeat the same code and the same address."],
+    "Open the delivery company.",
+    `Give them your code, ${codeHtml}.`,
+    "Give them your address.",
+    "Stay in touch and track it until it arrives.",
   ]
-  const rows = steps.map(([heading, body], index) => `<tr>
-      <td bgcolor="${white}" style="padding:14px ${side} 0;${paper}">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
+  return steps.map((line, index) => `<tr>
+      <td bgcolor="${white}" style="padding:8px ${side} 0;${paper}">
+        <table role="presentation" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
           <tr>
-            <td class="fd-bar fd-onred" valign="top" align="center" width="48" bgcolor="${red}" style="width:48px;${redFill}padding:12px 0;font-family:${display};font-size:22px;font-weight:700;line-height:1;color:${white};">${index + 1}</td>
-            <td class="fd-ink" valign="top" bgcolor="${white}" style="padding:0 0 0 16px;${paper}">
-              <div style="font-family:${display};font-size:20px;font-weight:700;letter-spacing:-0.03em;line-height:1.15;color:${ink};">${heading}</div>
-              <div style="padding-top:6px;font-family:${ui};font-size:16px;line-height:1.55;color:${ink};">${body}</div>
+            <td valign="middle" width="28" style="width:28px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" bgcolor="${red}" style="${redFill}">
+                <tr>
+                  <td class="fd-bar fd-onred" align="center" valign="middle" width="28" height="28" bgcolor="${red}" style="width:28px;height:28px;${redFill}font-family:${display};font-size:14px;font-weight:700;line-height:28px;color:${white};">${index + 1}</td>
+                </tr>
+              </table>
             </td>
+            <td class="fd-ink" valign="middle" bgcolor="${white}" style="padding:0 0 0 12px;font-family:${ui};font-size:16px;line-height:1.3;color:${ink};${paper}">${line}</td>
           </tr>
         </table>
       </td>
     </tr>`).join("")
-  return rows
 }
 
 function amountBlock(amount, caption) {
@@ -156,19 +158,19 @@ function prizeSheet(car, cash) {
     <td bgcolor="${white}" style="padding:28px 0 0;${paper}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${red}" style="${redFill}">
         <tr>
-          <td class="fd-onred" bgcolor="${red}" style="padding:28px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${white};">Selected car</td>
+          <td class="fd-onred" bgcolor="${red}" style="padding:20px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${white};">Selected car</td>
         </tr>
         <tr>
-          <td class="fd-onred" bgcolor="${red}" style="padding:8px ${side} 22px;${redFill}font-family:${display};font-size:36px;font-weight:700;letter-spacing:-0.03em;line-height:1.05;color:${white};">${escapeHtml(car)}</td>
+          <td class="fd-onred" bgcolor="${red}" style="padding:6px ${side} 16px;${redFill}font-family:${display};font-size:32px;font-weight:700;letter-spacing:-0.03em;line-height:1.05;color:${white};">${escapeHtml(car)}</td>
         </tr>
         <tr>
           <td bgcolor="${red}" style="padding:0 ${side};${redFill}"><div style="border-top:2px solid ${white};font-size:0;line-height:0;">&nbsp;</div></td>
         </tr>
         <tr>
-          <td class="fd-onred" bgcolor="${red}" style="padding:20px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${white};">Cash prize</td>
+          <td class="fd-onred" bgcolor="${red}" style="padding:14px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${white};">Cash prize</td>
         </tr>
         <tr>
-          <td class="fd-onred" bgcolor="${red}" style="padding:8px ${side} 28px;${redFill}font-family:${display};font-size:48px;font-weight:700;letter-spacing:-0.03em;line-height:1;color:${white};">${escapeHtml(cash)}</td>
+          <td class="fd-onred" bgcolor="${red}" style="padding:6px ${side} 20px;${redFill}font-family:${display};font-size:44px;font-weight:700;letter-spacing:-0.03em;line-height:1;color:${white};">${escapeHtml(cash)}</td>
         </tr>
       </table>
     </td>
@@ -181,13 +183,10 @@ function codeSheet(code) {
     <td bgcolor="${white}" style="padding:20px ${side} 0;${paper}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="border:4px solid ${red};${paper}">
         <tr>
-          <td class="fd-red" bgcolor="${white}" style="padding:22px 24px 0;font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};${paper}">Identification code</td>
+          <td class="fd-red" bgcolor="${white}" style="padding:16px 20px 0;font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};${paper}">Identification code</td>
         </tr>
         <tr>
-          <td class="fd-red" bgcolor="${white}" style="padding:8px 24px 0;font-family:${display};font-size:40px;font-weight:700;letter-spacing:0.04em;line-height:1;color:${red};${paper}">${safe}</td>
-        </tr>
-        <tr>
-          <td class="fd-ink" bgcolor="${white}" style="padding:12px 24px 22px;font-family:${ui};font-size:16px;line-height:1.55;color:${ink};${paper}">Give this code to the delivery company. It is how they find your claim. Keep it until the package is in your hands.</td>
+          <td class="fd-red" bgcolor="${white}" style="padding:6px 20px 16px;font-family:${display};font-size:36px;font-weight:700;letter-spacing:0.04em;line-height:1;color:${red};${paper}">${safe}</td>
         </tr>
       </table>
     </td>
@@ -404,7 +403,7 @@ export function claimSuccess(record) {
     "Send this link to someone you love. When they finish their own free entry, you receive one extra chance.",
     link,
     "",
-    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required.",
+    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
   ].join("\n")
   const html = frame({
     kicker: "Identification",
@@ -488,7 +487,7 @@ function claimNotice(record) {
     "The congratulations letter sends about one minute after this registration, unless the claim is set to Under consideration or Closed. The claim stays until the desk removes it.",
     `Review it at ${desk}.`,
     "",
-    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required.",
+    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
   ].join("\n")
   const html = frame({
     kicker: "Desk notice",
@@ -503,7 +502,6 @@ function claimNotice(record) {
 }
 
 export function selectionLetter(record, link, options = {}) {
-  const safeLink = escapeHtml(link)
   const code = escapeHtml(record.id)
   const car = record.prizeName || "Prize"
   const cash = formatMoney(record.cash)
@@ -513,43 +511,32 @@ export function selectionLetter(record, link, options = {}) {
     options.sample ? `Desk sample${options.reference ? ` ${options.reference}` : ""}. This is not a selection.` : "",
     `Hello ${name},`,
     "",
-    "Congratulations. The Future Draw desk has selected your claim. Your car and your cash prize are confirmed in this letter. Keep it. The identification code is what you give the delivery company.",
+    "Your claim is selected.",
     "",
     `Selected car: ${car}`,
     `Cash prize: ${cash}`,
     `Identification code: ${record.id}`,
     "",
-    "Give this code to the delivery company. It is how they find your claim. Keep it until the package is in your hands.",
-    "",
-    "Receiving the package",
-    "",
-    "The package is sent by the delivery company. There are four steps, and they are the only steps.",
-    "",
-    "1. Open the delivery link. It opens the company that sends the package to the address you give them.",
-    `2. When their customer care answers, give them your identification code, ${record.id}. That code is how they find this claim.`,
-    "3. Tell them the full address where you want the package delivered. They send it to the address you provide.",
-    "4. Remain in contact with the delivery company and track the package until it is in your hands. If they ask again, repeat the same code and the same address.",
+    "1. Open the delivery company.",
+    `2. Give them your code, ${record.id}.`,
+    "3. Give them your address.",
+    "4. Stay in touch and track it until it arrives.",
     "",
     `Delivery: ${link}`,
-    "",
-    "No fee is required. Stay in touch with the delivery company until the package reaches the address you give them.",
     "",
     "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
   ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n")
   const html = frame({
     kicker: "Selected claim",
     title: "Congratulations.",
-    banner: options.sample ? band(`Desk sample${options.reference ? ` · ${escapeHtml(options.reference)}` : ""}. This letter shows the selection letter. It is not a selection.`) : "",
-    intro: paragraph(`Hello ${escapeHtml(name)}. The Future Draw desk has selected your claim. Your car and your cash prize are confirmed below. Keep this letter. The identification code is what you give the delivery company when you arrange the package.`),
+    banner: options.sample ? band("Desk sample. This is not a selection.") : "",
+    intro: paragraph(`Hello ${escapeHtml(name)}. Your claim is selected.`),
     blocks: [
       prizeSheet(car, cash),
       codeSheet(record.id),
-      paragraph(`<span class="fd-red" style="font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};">Receiving the package</span>`),
-      paragraph("The package is sent by the delivery company. There are four steps, and they are the only steps."),
       deliverySteps(`<strong class="fd-red" style="color:${red};">${code}</strong>`),
     ],
-    action: paragraph(`${button(link, "Open the delivery company")}<div style="padding-top:14px;font-family:${ui};font-size:15px;line-height:1.5;"><a class="fd-red" href="${safeLink}" style="color:${red};word-break:break-all;">${safeLink}</a></div>`),
-    note: paragraph("No fee is required. Stay in touch with the delivery company, and track the package, until it reaches the address you give them."),
+    action: paragraph(button(link, "Open the delivery company")),
   })
   return { subject, text, html }
 }
@@ -589,7 +576,7 @@ export function customerNote(record, message, link = "") {
     link ? `Open this link: ${link}` : "",
     "",
     `Identification: ${record.id}`,
-    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required.",
+    "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
   ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n")
   const html = frame({
     kicker: "From the desk",
