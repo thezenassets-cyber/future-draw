@@ -276,7 +276,7 @@ export default function Admin() {
         {unlocked ? (
           <form className="admin-panel" id="test-letter" onSubmit={sendTest} noValidate>
             <p className="kicker">Desk letter</p>
-            <p className="letter-hint">Sends a sample of the congratulations letter. A real claim sends that letter one minute later, unless you hold the claim. This sample is not a selection. It is reported only after Resend accepts the letter.</p>
+            <p className="letter-hint">Sends a sample of the congratulations letter. A real claim sends that letter about one minute later, unless you hold the claim. A saved logistics link makes the button open the delivery company. This sample opens Future Draw and is not a selection.</p>
             <div className="field">
               <label htmlFor="test-mail">Send a test letter</label>
               <input

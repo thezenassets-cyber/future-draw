@@ -530,10 +530,10 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
         <p className="kicker">Congratulations letter</p>
         <p className="letter-hint">
           {claim.letterDueAt && !claim.letterSentAt
-            ? `Sends at ${formatWhen(claim.letterDueAt)}. Set Under consideration or Closed to hold it. The claim stays until you remove it.`
+            ? `Sends at ${formatWhen(claim.letterDueAt)}. Save the logistics link before then and the button opens the delivery company. Otherwise it opens Future Draw. Under consideration or Closed holds the letter.`
             : selected
-              ? "Paste the delivery link and send. The claim stays until you remove it."
-              : "Paste the delivery link and send. Sending marks this claim Selected. The claim stays until you remove it."}
+              ? "Paste the logistics link and send. The letter names the car, the cash prize, and the code, then four short steps."
+              : "Paste the logistics link and send. Sending marks this claim Selected."}
         </p>
         <div className="desk-fields">
           <div className="field">
@@ -557,12 +557,19 @@ function ClaimCard({ claim, pass, onStanding, onDone, fresh = false }) {
               placeholder="https://"
               value={delivery}
               onChange={(event) => setDelivery(event.target.value)}
+              onBlur={() => {
+                const raw = delivery.trim()
+                if (raw === String(claim.deliveryUrl || "").trim()) return
+                post(`/api/admin/claims/${claim.id}/delivery`, { deliveryUrl: raw }).then((saved) => {
+                  if (saved) setNote(raw ? "Logistics link saved for the letter." : "Logistics link cleared. The letter opens Future Draw.")
+                })
+              }}
             />
           </div>
         </div>
         {delivery.trim() ? (
           <p className="claim-meta">
-            The button opens {delivery.trim()}. The letter congratulates them, names the selected car and the cash prize, then explains the package.
+            The button opens {delivery.trim()}. The letter names the car, the cash prize, and the code, then four short steps.
           </p>
         ) : null}
         {error ? <p className="error">{error}</p> : null}

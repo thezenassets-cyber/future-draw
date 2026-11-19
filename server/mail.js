@@ -112,13 +112,7 @@ function band(html) {
   </tr>`
 }
 
-function deliverySteps(codeHtml) {
-  const steps = [
-    "Open the delivery company.",
-    `Give them your code, ${codeHtml}.`,
-    "Give them your address.",
-    "Stay in touch and track it until it arrives.",
-  ]
+function deliverySteps(steps) {
   return steps.map((line, index) => `<tr>
       <td bgcolor="${white}" style="padding:8px ${side} 0;${paper}">
         <table role="presentation" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
@@ -390,7 +384,7 @@ export function claimSuccess(record) {
     "You're entered.",
     "",
     `Identification: ${record.id}`,
-    `This letter records your entry. It is not a selection. This code is your identification for the ${record.prizeName} and ${formatMoney(record.cash)}. You have ${chances}. One finished invite adds one chance. Keep this code. The desk emails you again within a minute. Check the inbox and the spam folder.`,
+    `This letter records your entry. It is not a selection. This code is your identification for the ${record.prizeName} and ${formatMoney(record.cash)}. You have ${chances}. One finished invite adds one chance. Keep this code. The congratulations letter follows about one minute later, unless the desk holds the claim. Check the inbox and the spam folder.`,
     "",
     `Name: ${record.name}`,
     `Email: ${record.email}`,
@@ -411,7 +405,7 @@ export function claimSuccess(record) {
     intro: paragraph(`<strong class="fd-red" style="font-family:${display};font-size:40px;line-height:1;color:${red};">${escapeHtml(record.id)}</strong>`),
     blocks: [
       amountBlock(record.cash, record.prizeName || "Prize"),
-      paragraph(`This letter records your entry. It is not a selection. This code is your identification for the ${escapeHtml(record.prizeName)} and ${escapeHtml(formatMoney(record.cash))}. You have ${escapeHtml(chances)}. One finished invite adds one chance. Keep this code. The desk emails you again within a minute. Check the inbox and the spam folder.`),
+      paragraph(`This letter records your entry. It is not a selection. This code is your identification for the ${escapeHtml(record.prizeName)} and ${escapeHtml(formatMoney(record.cash))}. You have ${escapeHtml(chances)}. One finished invite adds one chance. Keep this code. The congratulations letter follows about one minute later, unless the desk holds the claim. Check the inbox and the spam folder.`),
       detailBlock([
         ["Name", record.name],
         ["Email", record.email],
@@ -506,6 +500,14 @@ export function selectionLetter(record, link, options = {}) {
   const car = record.prizeName || "Prize"
   const cash = formatMoney(record.cash)
   const name = record.name || "there"
+  let deliveryCompany = false
+  try {
+    deliveryCompany = new URL(link).hostname.replace(/^www\./, "") !== "futuredraw.live"
+  } catch {
+    deliveryCompany = false
+  }
+  const openLine = deliveryCompany ? "Open the delivery company." : "Open Future Draw."
+  const openLabel = deliveryCompany ? "Open the delivery company" : "Open Future Draw"
   const subject = `Congratulations · ${car} · ${record.id}`
   const text = [
     options.sample ? `Desk sample${options.reference ? ` ${options.reference}` : ""}. This is not a selection.` : "",
@@ -517,7 +519,7 @@ export function selectionLetter(record, link, options = {}) {
     `Cash prize: ${cash}`,
     `Identification code: ${record.id}`,
     "",
-    "1. Open the delivery company.",
+    `1. ${openLine}`,
     `2. Give them your code, ${record.id}.`,
     "3. Give them your address.",
     "4. Stay in touch and track it until it arrives.",
@@ -534,9 +536,14 @@ export function selectionLetter(record, link, options = {}) {
     blocks: [
       prizeSheet(car, cash),
       codeSheet(record.id),
-      deliverySteps(`<strong class="fd-red" style="color:${red};">${code}</strong>`),
+      deliverySteps([
+        openLine,
+        `Give them your code, <strong class="fd-red" style="color:${red};">${code}</strong>.`,
+        "Give them your address.",
+        "Stay in touch and track it until it arrives.",
+      ]),
     ],
-    action: paragraph(button(link, "Open the delivery company")),
+    action: paragraph(button(link, openLabel)),
   })
   return { subject, text, html }
 }

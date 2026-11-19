@@ -193,6 +193,20 @@ export async function handleAdmin(req, res) {
     return send(res, 200, claimsPayload())
   }
 
+  if (parts.length === 3 && parts[2] === "delivery") {
+    const raw = String(body.deliveryUrl || "").trim()
+    const link = raw ? deliveryLink(raw) : ""
+    if (raw && !link) return send(res, 400, { error: "Paste a logistics link that starts with http:// or https://." })
+    const updated = await updateEntries((entries) => {
+      const item = entries.find((entry) => entry.id === id)
+      if (!item) return false
+      item.deliveryUrl = link
+      return true
+    })
+    if (!updated) return send(res, 404, { error: "This claim is not on the desk." })
+    return send(res, 200, claimsPayload())
+  }
+
   if (parts.length === 3 && parts[2] === "letter") {
     const link = deliveryLink(body.deliveryUrl)
     if (!link) return send(res, 400, { error: "Paste the logistics link. It must start with http:// or https://." })

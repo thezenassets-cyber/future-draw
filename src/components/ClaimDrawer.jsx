@@ -280,9 +280,10 @@ function Identification({ entry, onClose }) {
       <p className="entry-no">{entry.id}</p>
       <p>
         This code is your identification for the {entry.prizeName} and{" "}
-        {formatCash(entry.cash)}. You have {chanceLabel}. One finished invite adds one
-        chance. Keep this code. The desk emails you within a minute. Check the inbox
-        and the spam folder.{" "}
+        {formatCash(entry.cash)}. You have {chanceLabel}. This is not a selection.
+        The entry email is on its way. The congratulations letter follows about one
+        minute later, unless the desk holds the claim. Check the inbox and the spam
+        folder.{" "}
         {entry.deskNotified
           ? "The desk has been notified of this registration."
           : "This registration is stored with the desk under your code."}

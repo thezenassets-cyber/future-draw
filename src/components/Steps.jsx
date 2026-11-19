@@ -28,7 +28,7 @@ export default function Steps({ selected, entry, onDetails, onCode }) {
       index: "03",
       title: "Your identification",
       body: entry
-        ? "Your identification code is ready. The desk emails you within a minute."
+        ? "Your code is ready. The entry email is on its way. The congratulations letter follows about one minute later."
         : "Your identification code is issued here, after the claim details are complete.",
       label: entry ? "Show your code" : "Finish the claim first",
       ready: Boolean(entry),
