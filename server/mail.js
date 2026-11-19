@@ -26,104 +26,168 @@ export function formatMoney(amount) {
   }).format(safe)
 }
 
+const side = "36px"
+const redFill = `background-color:${red};background-image:linear-gradient(${red},${red});`
+
 function button(href, label) {
   const safeHref = escapeHtml(href)
   const safeLabel = escapeHtml(label)
-  return `<table role="presentation" cellpadding="0" cellspacing="0">
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr>
-      <td class="fd-btn" bgcolor="${red}" style="background-color:${red};background-image:linear-gradient(${red},${red});border-radius:2px;">
-        <a class="fd-btn" href="${safeHref}" style="display:inline-block;padding:16px 28px;font-family:${ui};font-size:16px;font-weight:600;line-height:1;color:${white};text-decoration:none;">${safeLabel}</a>
+      <td class="fd-btn" align="center" bgcolor="${red}" style="${redFill}">
+        <a class="fd-btn" href="${safeHref}" style="display:block;padding:18px 24px;font-family:${ui};font-size:15px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;color:${white};text-decoration:none;">${safeLabel}</a>
       </td>
     </tr>
   </table>`
 }
 
-function frame({ kicker, title, intro, blocks, action, note }) {
-  const body = [intro, ...blocks, action, note].filter(Boolean).join("")
+function frame({ kicker, title, intro, blocks, action, note, banner }) {
+  const body = [banner, intro, ...blocks, action, note].filter(Boolean).join("")
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light only">
     <meta name="supported-color-schemes" content="light">
     <style>
       :root { color-scheme: light only; supported-color-schemes: light; }
       .fd-red { color: ${red} !important; }
       .fd-ink { color: ${ink} !important; }
+      .fd-onred, .fd-onred a { color: ${white} !important; }
       .fd-bar, .fd-btn, .fd-btn a { background-color: ${red} !important; background-image: linear-gradient(${red},${red}) !important; }
-      .fd-btn, .fd-btn a { color: ${white} !important; }
+      .fd-btn, .fd-btn a, .fd-onred { color: ${white} !important; }
     </style>
   </head>
   <body bgcolor="${white}" style="margin:0;padding:0;${paper}color:${ink};">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
-      <tr><td class="fd-bar" bgcolor="${red}" height="8" style="background-color:${red};background-image:linear-gradient(${red},${red});font-size:0;line-height:0;">&nbsp;</td></tr>
       <tr>
-        <td align="center" bgcolor="${white}" style="padding:36px 20px 40px;${paper}">
-          <table role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="${white}" style="width:100%;max-width:560px;${paper}">
+        <td align="center" bgcolor="${white}" style="padding:24px 12px 32px;${paper}">
+          <table role="presentation" width="640" cellpadding="0" cellspacing="0" bgcolor="${white}" style="width:100%;max-width:640px;${paper}">
             <tr>
-              <td class="fd-ink" bgcolor="${white}" style="font-family:${display};font-size:22px;font-weight:700;line-height:1;color:${ink};${paper}">Future <span class="fd-red" style="color:${red};">Draw</span></td>
-            </tr>
-            <tr>
-              <td bgcolor="${white}" style="padding-top:10px;font-family:${ui};font-size:12px;letter-spacing:0.16em;text-transform:uppercase;${paper}">
-                <a class="fd-red" href="${site}" style="color:${red};text-decoration:none;">futuredraw.live</a>
+              <td class="fd-bar fd-onred" bgcolor="${red}" style="padding:32px ${side} 28px;${redFill}">
+                <div class="fd-onred" style="font-family:${display};font-size:32px;font-weight:700;letter-spacing:-0.03em;line-height:1;color:${white};">Future Draw</div>
+                <div style="padding-top:12px;font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;line-height:1.4;">
+                  <a class="fd-onred" href="${site}" style="color:${white};text-decoration:none;">futuredraw.live</a>
+                </div>
               </td>
             </tr>
             <tr>
-              <td class="fd-red" bgcolor="${white}" style="padding-top:32px;font-family:${ui};font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};${paper}">${kicker}</td>
+              <td class="fd-red" bgcolor="${white}" style="padding:32px ${side} 0;font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};${paper}">${kicker}</td>
             </tr>
             <tr>
-              <td class="fd-ink" bgcolor="${white}" style="padding-top:10px;font-family:${display};font-size:36px;font-weight:700;line-height:1.05;color:${ink};${paper}">${title}</td>
+              <td class="fd-ink" bgcolor="${white}" style="padding:10px ${side} 0;font-family:${display};font-size:44px;font-weight:700;letter-spacing:-0.03em;line-height:0.98;color:${ink};${paper}">${title}</td>
             </tr>
             ${body}
             <tr>
-              <td class="fd-ink" bgcolor="${white}" style="padding-top:32px;border-top:2px solid ${red};font-family:${ui};font-size:13px;line-height:1.5;color:${ink};${paper}">
-                Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required.
-                <a class="fd-red" href="${site}" style="color:${red};text-decoration:none;">futuredraw.live</a>
+              <td bgcolor="${white}" style="padding:32px ${side} 8px;${paper}">
+                <div style="border-top:4px solid ${red};padding-top:16px;font-family:${ui};font-size:14px;line-height:1.6;color:${ink};">
+                  Future Draw is a customer promotion. It is not affiliated with Tesla, Inc. No fee is required.
+                  <a class="fd-red" href="${site}" style="color:${red};text-decoration:none;">futuredraw.live</a>
+                </div>
               </td>
             </tr>
+            <tr><td class="fd-bar" bgcolor="${red}" height="16" style="${redFill}font-size:0;line-height:0;">&nbsp;</td></tr>
           </table>
         </td>
       </tr>
-      <tr><td class="fd-bar" bgcolor="${red}" height="8" style="background-color:${red};background-image:linear-gradient(${red},${red});font-size:0;line-height:0;">&nbsp;</td></tr>
     </table>
   </body>
 </html>`
 }
 
 function paragraph(html) {
-  return `<tr><td class="fd-ink" bgcolor="${white}" style="padding-top:16px;font-family:${ui};font-size:16px;line-height:1.5;color:${ink};${paper}">${html}</td></tr>`
+  return `<tr><td class="fd-ink" bgcolor="${white}" style="padding:18px ${side} 0;font-family:${ui};font-size:17px;line-height:1.6;color:${ink};${paper}">${html}</td></tr>`
 }
 
-function deliverySteps(codeHtml) {
-  const steps = [
-    "Open the delivery button. It takes you to the delivery company.",
-    `Give their customer care your identification code, ${codeHtml}.`,
-    "Give them the address where you want the package sent.",
-    "Stay in touch with the delivery company, and track the package, until you receive it.",
-  ]
-  const rows = steps.map((step, index) => `<tr>
-      <td class="fd-red" valign="top" bgcolor="${white}" width="36" style="padding:16px 12px 0 0;font-family:${display};font-size:22px;font-weight:700;line-height:1.2;color:${red};${paper}">${index + 1}</td>
-      <td class="fd-ink" valign="top" bgcolor="${white}" style="padding:16px 0 0;border-top:2px solid ${red};font-family:${ui};font-size:16px;line-height:1.5;color:${ink};${paper}">${step}</td>
-    </tr>`).join("")
+function band(html) {
   return `<tr>
-    <td bgcolor="${white}" style="padding-top:8px;${paper}">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
-        ${rows}
+    <td bgcolor="${white}" style="padding:22px ${side} 0;${paper}">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="border-left:8px solid ${red};${paper}">
+        <tr>
+          <td class="fd-ink" bgcolor="${white}" style="padding:4px 0 4px 16px;font-family:${ui};font-size:15px;line-height:1.5;color:${ink};${paper}">${html}</td>
+        </tr>
       </table>
     </td>
   </tr>`
 }
 
+function deliverySteps(codeHtml) {
+  const steps = [
+    ["Open the delivery company", "Use the button below. It opens the company that sends the package to the address you give them."],
+    ["Give them your code", `When their customer care answers, give them your identification code, ${codeHtml}. That code is how they find this claim.`],
+    ["Give them your address", "Tell them the full address where you want the package delivered. They send it to the address you provide."],
+    ["Stay in touch until it arrives", "Remain in contact with the delivery company and track the package until it is in your hands. If they ask again, repeat the same code and the same address."],
+  ]
+  const rows = steps.map(([heading, body], index) => `<tr>
+      <td bgcolor="${white}" style="padding:14px ${side} 0;${paper}">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
+          <tr>
+            <td class="fd-bar fd-onred" valign="top" align="center" width="48" bgcolor="${red}" style="width:48px;${redFill}padding:12px 0;font-family:${display};font-size:22px;font-weight:700;line-height:1;color:${white};">${index + 1}</td>
+            <td class="fd-ink" valign="top" bgcolor="${white}" style="padding:0 0 0 16px;${paper}">
+              <div style="font-family:${display};font-size:20px;font-weight:700;letter-spacing:-0.03em;line-height:1.15;color:${ink};">${heading}</div>
+              <div style="padding-top:6px;font-family:${ui};font-size:16px;line-height:1.55;color:${ink};">${body}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`).join("")
+  return rows
+}
+
 function amountBlock(amount, caption) {
   return `<tr>
-    <td bgcolor="${white}" style="padding-top:28px;${paper}">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
+    <td bgcolor="${white}" style="padding:28px ${side} 0;${paper}">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="border-top:8px solid ${red};${paper}">
         <tr>
-          <td bgcolor="${white}" style="padding:24px 0 8px;${paper}">
-            <div class="fd-red" style="font-family:${ui};font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};">Amount to claim</div>
-            <div class="fd-red" style="padding-top:8px;font-family:${display};font-size:40px;font-weight:700;line-height:1;color:${red};">${escapeHtml(formatMoney(amount))}</div>
-            <div class="fd-ink" style="padding-top:10px;font-family:${ui};font-size:16px;line-height:1.4;color:${ink};">${escapeHtml(caption)}</div>
+          <td bgcolor="${white}" style="padding:18px 0 0;${paper}">
+            <div class="fd-red" style="font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};">Amount to claim</div>
+            <div class="fd-red" style="padding-top:8px;font-family:${display};font-size:44px;font-weight:700;letter-spacing:-0.03em;line-height:1;color:${red};">${escapeHtml(formatMoney(amount))}</div>
+            <div class="fd-ink" style="padding-top:12px;font-family:${ui};font-size:17px;line-height:1.4;color:${ink};">${escapeHtml(caption)}</div>
           </td>
+        </tr>
+      </table>
+    </td>
+  </tr>`
+}
+
+function prizeSheet(car, cash) {
+  return `<tr>
+    <td bgcolor="${white}" style="padding:28px 0 0;${paper}">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${red}" style="${redFill}">
+        <tr>
+          <td class="fd-onred" bgcolor="${red}" style="padding:28px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${white};">Selected car</td>
+        </tr>
+        <tr>
+          <td class="fd-onred" bgcolor="${red}" style="padding:8px ${side} 22px;${redFill}font-family:${display};font-size:36px;font-weight:700;letter-spacing:-0.03em;line-height:1.05;color:${white};">${escapeHtml(car)}</td>
+        </tr>
+        <tr>
+          <td bgcolor="${red}" style="padding:0 ${side};${redFill}"><div style="border-top:2px solid ${white};font-size:0;line-height:0;">&nbsp;</div></td>
+        </tr>
+        <tr>
+          <td class="fd-onred" bgcolor="${red}" style="padding:20px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${white};">Cash prize</td>
+        </tr>
+        <tr>
+          <td class="fd-onred" bgcolor="${red}" style="padding:8px ${side} 28px;${redFill}font-family:${display};font-size:48px;font-weight:700;letter-spacing:-0.03em;line-height:1;color:${white};">${escapeHtml(cash)}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>`
+}
+
+function codeSheet(code) {
+  const safe = escapeHtml(code)
+  return `<tr>
+    <td bgcolor="${white}" style="padding:20px ${side} 0;${paper}">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="border:4px solid ${red};${paper}">
+        <tr>
+          <td class="fd-red" bgcolor="${white}" style="padding:22px 24px 0;font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};${paper}">Identification code</td>
+        </tr>
+        <tr>
+          <td class="fd-red" bgcolor="${white}" style="padding:8px 24px 0;font-family:${display};font-size:40px;font-weight:700;letter-spacing:0.04em;line-height:1;color:${red};${paper}">${safe}</td>
+        </tr>
+        <tr>
+          <td class="fd-ink" bgcolor="${white}" style="padding:12px 24px 22px;font-family:${ui};font-size:16px;line-height:1.55;color:${ink};${paper}">Give this code to the delivery company. It is how they find your claim. Keep it until the package is in your hands.</td>
         </tr>
       </table>
     </td>
@@ -133,14 +197,14 @@ function amountBlock(amount, caption) {
 function detailBlock(rows) {
   const lines = rows
     .map(([label, value]) => `<tr>
-      <td bgcolor="${white}" style="padding:14px 0 0;border-top:2px solid ${red};font-family:${ui};font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};${paper}">${escapeHtml(label)}</td>
+      <td bgcolor="${white}" style="padding:16px 0 0;border-top:4px solid ${red};font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};${paper}">${escapeHtml(label)}</td>
     </tr>
     <tr>
-      <td class="fd-ink" bgcolor="${white}" style="padding:4px 0 14px;font-family:${ui};font-size:18px;line-height:1.4;color:${ink};${paper}">${escapeHtml(value)}</td>
+      <td class="fd-ink" bgcolor="${white}" style="padding:6px 0 16px;font-family:${display};font-size:22px;font-weight:700;letter-spacing:-0.03em;line-height:1.2;color:${ink};${paper}">${escapeHtml(value)}</td>
     </tr>`)
     .join("")
   return `<tr>
-    <td bgcolor="${white}" style="padding-top:28px;${paper}">
+    <td bgcolor="${white}" style="padding:28px ${side} 0;${paper}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">${lines}</table>
     </td>
   </tr>`
@@ -327,7 +391,7 @@ export function claimSuccess(record) {
     "You're entered.",
     "",
     `Identification: ${record.id}`,
-    `This code is your identification for the ${record.prizeName} and ${formatMoney(record.cash)}. You have ${chances}. One finished invite adds one chance. Keep this code. The desk emails you again within a minute. Check the inbox and the spam folder.`,
+    `This letter records your entry. It is not a selection. This code is your identification for the ${record.prizeName} and ${formatMoney(record.cash)}. You have ${chances}. One finished invite adds one chance. Keep this code. The desk emails you again within a minute. Check the inbox and the spam folder.`,
     "",
     `Name: ${record.name}`,
     `Email: ${record.email}`,
@@ -348,7 +412,7 @@ export function claimSuccess(record) {
     intro: paragraph(`<strong class="fd-red" style="font-family:${display};font-size:40px;line-height:1;color:${red};">${escapeHtml(record.id)}</strong>`),
     blocks: [
       amountBlock(record.cash, record.prizeName || "Prize"),
-      paragraph(`This code is your identification for the ${escapeHtml(record.prizeName)} and ${escapeHtml(formatMoney(record.cash))}. You have ${escapeHtml(chances)}. One finished invite adds one chance. Keep this code. The desk emails you again within a minute. Check the inbox and the spam folder.`),
+      paragraph(`This letter records your entry. It is not a selection. This code is your identification for the ${escapeHtml(record.prizeName)} and ${escapeHtml(formatMoney(record.cash))}. You have ${escapeHtml(chances)}. One finished invite adds one chance. Keep this code. The desk emails you again within a minute. Check the inbox and the spam folder.`),
       detailBlock([
         ["Name", record.name],
         ["Email", record.email],
@@ -449,40 +513,43 @@ export function selectionLetter(record, link, options = {}) {
     options.sample ? `Desk sample${options.reference ? ` ${options.reference}` : ""}. This is not a selection.` : "",
     `Hello ${name},`,
     "",
-    "Congratulations. The Future Draw desk has selected your claim.",
+    "Congratulations. The Future Draw desk has selected your claim. Your car and your cash prize are confirmed in this letter. Keep it. The identification code is what you give the delivery company.",
     "",
     `Selected car: ${car}`,
     `Cash prize: ${cash}`,
     `Identification code: ${record.id}`,
     "",
-    "Your package",
+    "Give this code to the delivery company. It is how they find your claim. Keep it until the package is in your hands.",
     "",
-    "1. Open the delivery link. It takes you to the delivery company.",
-    `2. Give their customer care your identification code, ${record.id}.`,
-    "3. Give them the address where you want the package sent.",
-    "4. Stay in touch with the delivery company, and track the package, until you receive it.",
+    "Receiving the package",
+    "",
+    "The package is sent by the delivery company. There are four steps, and they are the only steps.",
+    "",
+    "1. Open the delivery link. It opens the company that sends the package to the address you give them.",
+    `2. When their customer care answers, give them your identification code, ${record.id}. That code is how they find this claim.`,
+    "3. Tell them the full address where you want the package delivered. They send it to the address you provide.",
+    "4. Remain in contact with the delivery company and track the package until it is in your hands. If they ask again, repeat the same code and the same address.",
     "",
     `Delivery: ${link}`,
     "",
-    "These are the only steps. No fee is required.",
+    "No fee is required. Stay in touch with the delivery company until the package reaches the address you give them.",
     "",
     "Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.",
   ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n")
   const html = frame({
-    kicker: "Selection",
-    title: "Congratulations",
-    intro: paragraph(`${options.sample ? `Desk sample${options.reference ? ` ${escapeHtml(options.reference)}` : ""}. This is not a selection. ` : ""}Hello ${escapeHtml(name)}. Congratulations. The Future Draw desk has selected your claim.`),
+    kicker: "Selected claim",
+    title: "Congratulations.",
+    banner: options.sample ? band(`Desk sample${options.reference ? ` · ${escapeHtml(options.reference)}` : ""}. This letter shows the selection letter. It is not a selection.`) : "",
+    intro: paragraph(`Hello ${escapeHtml(name)}. The Future Draw desk has selected your claim. Your car and your cash prize are confirmed below. Keep this letter. The identification code is what you give the delivery company when you arrange the package.`),
     blocks: [
-      detailBlock([
-        ["Selected car", car],
-        ["Cash prize", cash],
-        ["Identification code", record.id],
-      ]),
-      paragraph(`<span class="fd-red" style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};">Your package</span>`),
+      prizeSheet(car, cash),
+      codeSheet(record.id),
+      paragraph(`<span class="fd-red" style="font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};">Receiving the package</span>`),
+      paragraph("The package is sent by the delivery company. There are four steps, and they are the only steps."),
       deliverySteps(`<strong class="fd-red" style="color:${red};">${code}</strong>`),
     ],
-    action: paragraph(`${button(link, "Open delivery")}<div style="padding-top:12px;font-size:14px;line-height:1.4;"><a class="fd-red" href="${safeLink}" style="color:${red};">${safeLink}</a></div>`),
-    note: paragraph("These are the only steps. No fee is required."),
+    action: paragraph(`${button(link, "Open the delivery company")}<div style="padding-top:14px;font-family:${ui};font-size:15px;line-height:1.5;"><a class="fd-red" href="${safeLink}" style="color:${red};word-break:break-all;">${safeLink}</a></div>`),
+    note: paragraph("No fee is required. Stay in touch with the delivery company, and track the package, until it reaches the address you give them."),
   })
   return { subject, text, html }
 }
