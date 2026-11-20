@@ -26,7 +26,7 @@ export function formatMoney(amount) {
   }).format(safe)
 }
 
-const side = "36px"
+const side = "20px"
 const redFill = `background-color:${red};background-image:linear-gradient(${red},${red});`
 
 function button(href, label) {
@@ -35,7 +35,7 @@ function button(href, label) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr>
       <td class="fd-btn" align="center" bgcolor="${red}" style="${redFill}">
-        <a class="fd-btn" href="${safeHref}" style="display:block;padding:18px 24px;font-family:${ui};font-size:15px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;color:${white};text-decoration:none;">${safeLabel}</a>
+        <a class="fd-btn" href="${safeHref}" style="display:block;padding:16px 18px;font-family:${ui};font-size:15px;font-weight:700;letter-spacing:0;text-transform:uppercase;line-height:1.35;color:${white};text-decoration:none;word-wrap:break-word;">${safeLabel}</a>
       </td>
     </tr>
   </table>`
@@ -57,30 +57,38 @@ function frame({ kicker, title, intro, blocks, action, note, banner }) {
       .fd-onred, .fd-onred a { color: ${white} !important; }
       .fd-bar, .fd-btn, .fd-btn a { background-color: ${red} !important; background-image: linear-gradient(${red},${red}) !important; }
       .fd-btn, .fd-btn a, .fd-onred { color: ${white} !important; }
+      .fd-card { width: 100% !important; max-width: 600px !important; }
+      .fd-title, .fd-cash, .fd-code, .fd-ink, .fd-onred { word-wrap: break-word; overflow-wrap: anywhere; }
+      @media only screen and (max-width: 600px) {
+        .fd-title { font-size: 30px !important; line-height: 1.25 !important; }
+        .fd-cash { font-size: 32px !important; line-height: 1.25 !important; }
+        .fd-code { font-size: 26px !important; line-height: 1.3 !important; letter-spacing: 0 !important; }
+        .fd-side { padding-left: 16px !important; padding-right: 16px !important; }
+      }
     </style>
   </head>
   <body bgcolor="${white}" style="margin:0;padding:0;${paper}color:${ink};">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
       <tr>
         <td align="center" bgcolor="${white}" style="padding:24px 12px 32px;${paper}">
-          <table role="presentation" width="640" cellpadding="0" cellspacing="0" bgcolor="${white}" style="width:100%;max-width:640px;${paper}">
+          <table role="presentation" class="fd-card" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="width:100%;max-width:600px;${paper}">
             <tr>
-              <td class="fd-bar fd-onred" bgcolor="${red}" style="padding:32px ${side} 28px;${redFill}">
-                <div class="fd-onred" style="font-family:${display};font-size:32px;font-weight:700;letter-spacing:-0.03em;line-height:1;color:${white};">Future Draw</div>
-                <div style="padding-top:12px;font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;line-height:1.4;">
+              <td class="fd-bar fd-onred fd-side" bgcolor="${red}" style="padding:24px ${side} 22px;${redFill}">
+                <div class="fd-onred" style="font-family:${display};font-size:28px;font-weight:700;line-height:1.2;color:${white};">Future Draw</div>
+                <div style="padding-top:8px;font-family:${ui};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.4;">
                   <a class="fd-onred" href="${site}" style="color:${white};text-decoration:none;">futuredraw.live</a>
                 </div>
               </td>
             </tr>
             <tr>
-              <td class="fd-red" bgcolor="${white}" style="padding:32px ${side} 0;font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};${paper}">${kicker}</td>
+              <td class="fd-red fd-side" bgcolor="${white}" style="padding:24px ${side} 0;font-family:${ui};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.4;color:${red};${paper}">${kicker}</td>
             </tr>
             <tr>
-              <td class="fd-ink" bgcolor="${white}" style="padding:10px ${side} 0;font-family:${display};font-size:44px;font-weight:700;letter-spacing:-0.03em;line-height:0.98;color:${ink};${paper}">${title}</td>
+              <td class="fd-ink fd-title fd-side" bgcolor="${white}" style="padding:8px ${side} 0;font-family:${display};font-size:34px;font-weight:700;line-height:1.25;color:${ink};${paper}">${title}</td>
             </tr>
             ${body}
             <tr>
-              <td bgcolor="${white}" style="padding:32px ${side} 8px;${paper}">
+              <td class="fd-side" bgcolor="${white}" style="padding:28px ${side} 8px;${paper}">
                 <div style="border-top:4px solid ${red};padding-top:16px;font-family:${ui};font-size:14px;line-height:1.6;color:${ink};">
                   Future Draw is a customer promotion. It is not affiliated with Tesla, Inc.
                   <a class="fd-red" href="${site}" style="color:${red};text-decoration:none;">futuredraw.live</a>
@@ -97,12 +105,12 @@ function frame({ kicker, title, intro, blocks, action, note, banner }) {
 }
 
 function paragraph(html) {
-  return `<tr><td class="fd-ink" bgcolor="${white}" style="padding:18px ${side} 0;font-family:${ui};font-size:17px;line-height:1.6;color:${ink};${paper}">${html}</td></tr>`
+  return `<tr><td class="fd-ink fd-side" bgcolor="${white}" style="padding:16px ${side} 0;font-family:${ui};font-size:16px;line-height:1.55;color:${ink};word-wrap:break-word;${paper}">${html}</td></tr>`
 }
 
 function band(html) {
   return `<tr>
-    <td bgcolor="${white}" style="padding:22px ${side} 0;${paper}">
+    <td class="fd-side" bgcolor="${white}" style="padding:18px ${side} 0;${paper}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="border-left:8px solid ${red};${paper}">
         <tr>
           <td class="fd-ink" bgcolor="${white}" style="padding:4px 0 4px 16px;font-family:${ui};font-size:15px;line-height:1.5;color:${ink};${paper}">${html}</td>
@@ -114,8 +122,8 @@ function band(html) {
 
 function deliverySteps(steps) {
   return steps.map((line, index) => `<tr>
-      <td bgcolor="${white}" style="padding:8px ${side} 0;${paper}">
-        <table role="presentation" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">
+      <td class="fd-side" bgcolor="${white}" style="padding:8px ${side} 0;${paper}">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="width:100%;${paper}">
           <tr>
             <td valign="middle" width="28" style="width:28px;">
               <table role="presentation" cellpadding="0" cellspacing="0" bgcolor="${red}" style="${redFill}">
@@ -124,7 +132,7 @@ function deliverySteps(steps) {
                 </tr>
               </table>
             </td>
-            <td class="fd-ink" valign="middle" bgcolor="${white}" style="padding:0 0 0 12px;font-family:${ui};font-size:16px;line-height:1.3;color:${ink};${paper}">${line}</td>
+            <td class="fd-ink" valign="middle" bgcolor="${white}" style="padding:0 0 0 12px;font-family:${ui};font-size:16px;line-height:1.45;color:${ink};word-wrap:break-word;${paper}">${line}</td>
           </tr>
         </table>
       </td>
@@ -133,12 +141,12 @@ function deliverySteps(steps) {
 
 function amountBlock(amount, caption) {
   return `<tr>
-    <td bgcolor="${white}" style="padding:28px ${side} 0;${paper}">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="border-top:8px solid ${red};${paper}">
+    <td class="fd-side" bgcolor="${white}" style="padding:24px ${side} 0;${paper}">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="width:100%;border-top:8px solid ${red};${paper}">
         <tr>
           <td bgcolor="${white}" style="padding:18px 0 0;${paper}">
-            <div class="fd-red" style="font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};">Amount to claim</div>
-            <div class="fd-red" style="padding-top:8px;font-family:${display};font-size:44px;font-weight:700;letter-spacing:-0.03em;line-height:1;color:${red};">${escapeHtml(formatMoney(amount))}</div>
+            <div class="fd-red" style="font-family:${ui};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.4;color:${red};">Amount to claim</div>
+            <div class="fd-red fd-cash" style="padding-top:8px;font-family:${display};font-size:36px;font-weight:700;line-height:1.25;color:${red};">${escapeHtml(formatMoney(amount))}</div>
             <div class="fd-ink" style="padding-top:12px;font-family:${ui};font-size:17px;line-height:1.4;color:${ink};">${escapeHtml(caption)}</div>
           </td>
         </tr>
@@ -152,19 +160,19 @@ function prizeSheet(car, cash) {
     <td bgcolor="${white}" style="padding:28px 0 0;${paper}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${red}" style="${redFill}">
         <tr>
-          <td class="fd-onred" bgcolor="${red}" style="padding:20px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${white};">Selected car</td>
+          <td class="fd-onred fd-side" bgcolor="${red}" style="padding:18px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.4;color:${white};">Selected car</td>
         </tr>
         <tr>
-          <td class="fd-onred" bgcolor="${red}" style="padding:6px ${side} 16px;${redFill}font-family:${display};font-size:32px;font-weight:700;letter-spacing:-0.03em;line-height:1.05;color:${white};">${escapeHtml(car)}</td>
+          <td class="fd-onred fd-side" bgcolor="${red}" style="padding:6px ${side} 14px;${redFill}font-family:${display};font-size:28px;font-weight:700;line-height:1.25;color:${white};">${escapeHtml(car)}</td>
         </tr>
         <tr>
           <td bgcolor="${red}" style="padding:0 ${side};${redFill}"><div style="border-top:2px solid ${white};font-size:0;line-height:0;">&nbsp;</div></td>
         </tr>
         <tr>
-          <td class="fd-onred" bgcolor="${red}" style="padding:14px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${white};">Cash prize</td>
+          <td class="fd-onred fd-side" bgcolor="${red}" style="padding:14px ${side} 0;${redFill}font-family:${ui};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.4;color:${white};">Cash prize</td>
         </tr>
         <tr>
-          <td class="fd-onred" bgcolor="${red}" style="padding:6px ${side} 20px;${redFill}font-family:${display};font-size:44px;font-weight:700;letter-spacing:-0.03em;line-height:1;color:${white};">${escapeHtml(cash)}</td>
+          <td class="fd-onred fd-cash fd-side" bgcolor="${red}" style="padding:6px ${side} 18px;${redFill}font-family:${display};font-size:36px;font-weight:700;line-height:1.25;color:${white};">${escapeHtml(cash)}</td>
         </tr>
       </table>
     </td>
@@ -174,13 +182,13 @@ function prizeSheet(car, cash) {
 function codeSheet(code) {
   const safe = escapeHtml(code)
   return `<tr>
-    <td bgcolor="${white}" style="padding:20px ${side} 0;${paper}">
+    <td class="fd-side" bgcolor="${white}" style="padding:18px ${side} 0;${paper}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="border:4px solid ${red};${paper}">
         <tr>
-          <td class="fd-red" bgcolor="${white}" style="padding:16px 20px 0;font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};${paper}">Identification code</td>
+          <td class="fd-red" bgcolor="${white}" style="padding:16px 16px 0;font-family:${ui};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.4;color:${red};${paper}">Identification code</td>
         </tr>
         <tr>
-          <td class="fd-red" bgcolor="${white}" style="padding:6px 20px 16px;font-family:${display};font-size:36px;font-weight:700;letter-spacing:0.04em;line-height:1;color:${red};${paper}">${safe}</td>
+          <td class="fd-red fd-code" bgcolor="${white}" style="padding:6px 16px 16px;font-family:${display};font-size:28px;font-weight:700;line-height:1.3;color:${red};${paper}">${safe}</td>
         </tr>
       </table>
     </td>
@@ -190,14 +198,14 @@ function codeSheet(code) {
 function detailBlock(rows) {
   const lines = rows
     .map(([label, value]) => `<tr>
-      <td bgcolor="${white}" style="padding:16px 0 0;border-top:4px solid ${red};font-family:${ui};font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:${red};${paper}">${escapeHtml(label)}</td>
+      <td bgcolor="${white}" style="padding:14px 0 0;border-top:4px solid ${red};font-family:${ui};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.4;color:${red};${paper}">${escapeHtml(label)}</td>
     </tr>
     <tr>
-      <td class="fd-ink" bgcolor="${white}" style="padding:6px 0 16px;font-family:${display};font-size:22px;font-weight:700;letter-spacing:-0.03em;line-height:1.2;color:${ink};${paper}">${escapeHtml(value)}</td>
+      <td class="fd-ink" bgcolor="${white}" style="padding:4px 0 14px;font-family:${display};font-size:20px;font-weight:700;line-height:1.35;color:${ink};word-wrap:break-word;${paper}">${escapeHtml(value)}</td>
     </tr>`)
     .join("")
   return `<tr>
-    <td bgcolor="${white}" style="padding:28px ${side} 0;${paper}">
+    <td class="fd-side" bgcolor="${white}" style="padding:24px ${side} 0;${paper}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${white}" style="${paper}">${lines}</table>
     </td>
   </tr>`
@@ -402,7 +410,7 @@ export function claimSuccess(record) {
   const html = frame({
     kicker: "Identification",
     title: "You're entered.",
-    intro: paragraph(`<strong class="fd-red" style="font-family:${display};font-size:40px;line-height:1;color:${red};">${escapeHtml(record.id)}</strong>`),
+    intro: paragraph(`<strong class="fd-red fd-code" style="font-family:${display};font-size:28px;line-height:1.3;color:${red};">${escapeHtml(record.id)}</strong>`),
     blocks: [
       amountBlock(record.cash, record.prizeName || "Prize"),
       paragraph(`This letter records your entry. It is not a selection. This code is your identification for the ${escapeHtml(record.prizeName)} and ${escapeHtml(formatMoney(record.cash))}. You have ${escapeHtml(chances)}. One finished invite adds one chance. Keep this code. The congratulations letter follows about one minute later, unless the desk holds the claim. Check the inbox and the spam folder.`),
@@ -414,7 +422,7 @@ export function claimSuccess(record) {
         ["Prize", record.prizeName || "Prize"],
         ["Chances", chances],
       ]),
-      paragraph(`<span class="fd-red" style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${red};">Give someone a chance</span>`),
+      paragraph(`<span class="fd-red" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.4;color:${red};">Give someone a chance</span>`),
       paragraph("Send this link to someone you love. When they finish their own free entry, you receive one extra chance."),
     ],
     action: paragraph(`${button(link, "Open your invite")}<div style="padding-top:12px;font-size:14px;line-height:1.4;"><a class="fd-red" href="${safeLink}" style="color:${red};">${safeLink}</a></div>`),
