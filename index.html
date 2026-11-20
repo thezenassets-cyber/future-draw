@@ -2,6 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://client.crisp.chat" crossorigin />
+    <link rel="dns-prefetch" href="https://client.crisp.chat" />
+    <link rel="preconnect" href="https://client.relay.crisp.chat" crossorigin />
+    <script>
+      (function () {
+        if (location.pathname === "/admin" || location.pathname.indexOf("/admin/") === 0) return
+        window.$crisp = []
+        window.CRISP_WEBSITE_ID = "5d650e19-0540-4c5c-92c6-950455fb4a1b"
+        var s = document.createElement("script")
+        s.src = "https://client.crisp.chat/l.js"
+        s.async = true
+        s.fetchPriority = "high"
+        document.head.appendChild(s)
+      })()
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
